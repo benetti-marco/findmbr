@@ -48,9 +48,9 @@ dcl-pr BuildPreds;
   t4          varchar(60) const;
   t5          varchar(60) const;
   MODE        varchar(10) const;
-  oPredLine   varchar(32766);        
-  oPredAny    varchar(32766);        
-  oHaving     varchar(32766);       
+  oPredLine   varchar(32766);
+  oPredAny    varchar(32766);
+  oHaving     varchar(32766);
 end-pr;
 
 dcl-pr WordWrap;
@@ -61,6 +61,10 @@ end-pr;
 
 dcl-pr CreatePath;
       pPath    varchar(1024)   const;
+end-pr;
+
+dcl-pr ExitCall extpgm(exitpgm);
+  srcpfarr  char(10) dim(100);
 end-pr;
 
 dcl-ds FileParm qualified;
@@ -83,9 +87,11 @@ dcl-pi *n;
   p_MODE       char(10);
   p_CASE       char(12);
   p_REGEX      char(4);
+  p_EXITPGM    char(1);
   p_CSVFOLDER  char(500);
   p_CSVFILE    char(50);
   p_APPEND     char(4);
+  p_WRKLIB     char(10);
   p_LOG        char(4);
 end-pi;
 
@@ -114,6 +120,8 @@ dcl-s lib       char(10)       inz('');
 dcl-s srcfile   char(10)       inz('');
 dcl-s mbr       char(10)       inz('');
 dcl-s mbrdesc   char(50)       inz('');
+dcl-s exitpgm   char(10)       inz('');
+dcl-s tmpstring   varchar(100)       inz('');
 dcl-s srctype   char(10)       inz('');
 dcl-s cmd       char(1024)  inz('');
 dcl-s sqlcmd    varchar(10000)  inz('');
@@ -121,6 +129,9 @@ dcl-s swhere    varchar(1000)  inz('');
 dcl-s sfile     varchar(1000)  inz('');
 dcl-s Msg       varchar(30000);
 dcl-s lines     varchar(100) dim(500);
+
+dcl-c cQuote       '''';
+dcl-c cDoubleQuote '''''';
 
 dcl-ds STR132 len(132) end-ds;
 dcl-ds SS1132 len(132) end-ds;
@@ -177,6 +188,10 @@ else;
    rxFlag='i';
 endif;
 
+if p_EXITPGM<>'';
+    exitpgm='findmbr'+p_EXITPGM;
+endif;
+
 // CSV path e MBROPT
 exec sql values SESSION_USER into :usr;
 if %trim(p_CSVFOLDER)='*USRHOME';
@@ -204,25 +219,34 @@ endif;
 CreatePath(csvFolder);
 
 // Pulizia/creazione tabelle di lavoro
-exec sql drop table qtemp/results;
-exec sql drop table qtemp/mbrlist;
+sqlcmd = 'drop table &wrklib/results';
+sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+exec sql execute immediate :sqlcmd;
 
-exec sql create table qtemp/results(
-  lib     varchar(10),
-  srcfile varchar(10),
-  mbr     varchar(10),
-  mbrdesc varchar(50),
-  srctype varchar(10),
-  srcseq  varchar(6),
-  srcdta  varchar(200));
+sqlcmd = 'drop table &wrklib/mbrlist';
+sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+exec sql execute immediate :sqlcmd;
+
+sqlcmd = 'create table &wrklib/results('+
+ ' lib     varchar(10), '+
+ ' srcfile varchar(10), '+
+ ' mbr     varchar(10), '+
+ ' mbrdesc varchar(50), '+
+ ' srctype varchar(10), '+
+ ' srcseq  varchar(6), '+
+ ' srcdta  varchar(200))';
+sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+exec sql execute immediate :sqlcmd;
 exsr PRTERR;
 
-exec sql create table qtemp/mbrlist(
-  lib     char(10),
-  srcfile char(10),
-  mbr     char(10),
-  mbrdesc char(50),
-  srctype char(10));
+sqlcmd = 'create table &wrklib/mbrlist('+
+ ' lib     char(10), '+
+ ' srcfile char(10), '+
+ ' mbr     char(10), '+
+ ' mbrdesc char(50), '+
+ ' srctype char(10))';
+sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+exec sql execute immediate :sqlcmd;
 exsr PRTERR;
 
 // Carica coppie FILE/LIB (supporta *SRCPF)
@@ -259,6 +283,7 @@ for f = 1 to p_file.p_filecount;
         swhere=%scanrpl('&file':%trim(sfile):swhere);
         sqlcmd=%scanrpl('&where':swhere:sqlcmd);
       endif;
+      sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
       exsr PRTLOG;
       exec sql execute immediate :sqlcmd;
       exsr PRTERR;
@@ -280,13 +305,18 @@ for i=1 to %elem(SSQL4);
     endif;
     sqlcmd = %trimr(sqlcmd)+' '+%TRIMR(SSQL4(i));
 endfor;
+sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
 exsr PRTLOG;
 exec sql execute immediate :sqlcmd;
 exsr PRTERR;
 
 // Cursor candidati e loop membri
-exec sql declare C cursor for select lib, srcfile, mbr, mbrdesc, srctype from qtemp/mbrlist 
-  order by lib, srcfile, mbr;
+sqlcmd='select lib, srcfile, mbr, mbrdesc, srctype from &wrklib/mbrlist'+
+ ' order by lib, srcfile, mbr';
+sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+exec sql declare C cursor for s1;
+exec sql prepare s1 from :sqlcmd;
+exsr PRTERR;
 exec sql open C;
 exsr PRTERR;
 
@@ -302,8 +332,9 @@ dow '00000' = sqlstate;
   alias = 'FINDMBR';
 
   // Create alias for member
-  sqlcmd = 'CREATE OR REPLACE ALIAS qtemp/' + %trim(alias) +
+  sqlcmd = 'CREATE OR REPLACE ALIAS &wrklib/' + %trim(alias) +
         ' FOR "' + %trim(lib) + '"/"' + %trim(srcfile) + '"("' + %trim(mbr) + '")';
+  sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
   exsr PRTLOG;
   exec sql execute immediate :sqlcmd;
   exsr PRTERR;
@@ -323,20 +354,23 @@ dow '00000' = sqlstate;
   endfor;
   sqlcmd=%scanrpl('&lib':%trim(lib):sqlcmd);
   sqlcmd=%scanrpl('&srcfile':%trim(srcfile):sqlcmd);
-  sqlcmd=%scanrpl('&mbrdesc':%trim(mbrdesc):sqlcmd);
+  tmpstring=%scanrpl(cQuote : cDoubleQuote : %trimr(mbrdesc));
+  sqlcmd=%scanrpl('&mbrdesc':%trim(tmpstring):sqlcmd);
   sqlcmd=%scanrpl('&mbr':%trim(mbr):sqlcmd);
   sqlcmd=%scanrpl('&srctype':%trim(srctype):sqlcmd);
   sqlcmd=%scanrpl('&alias':%trim(alias):sqlcmd);
   sqlcmd=%scanrpl('&having':%trim(having):sqlcmd);
   sqlcmd=%scanrpl('&predAny':%trim(predAny):sqlcmd);
   sqlcmd=%scanrpl('&predLine':%trim(predLine):sqlcmd);
+  sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
   if r=1;
     exsr PRTLOG;
   endif;
   exec sql execute immediate :sqlcmd;
   exsr PRTERR;
 
-  sqlcmd = 'DROP ALIAS qtemp/' + %trim(alias);
+  sqlcmd = 'DROP ALIAS &wrklib/' + %trim(alias);
+  sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
   exec sql execute immediate :sqlcmd;
   exsr PRTERR;
 
@@ -346,6 +380,7 @@ exec sql close C;
 
 // Export CSV
 cmd = %trim(CMDARR(1))+' '+%trim(CMDARR(2));
+cmd=%scanrpl('&wrklib':%trim(p_WRKLIB):cmd);
 cmd = %scanrpl('&path':csvPath:cmd);
 
 QCMDEXC(cmd:%len(%trimr(cmd)));
@@ -359,9 +394,7 @@ BEGSR PRTERR;
 
   if sqlcod < 0;
 
-    if logSQL=*off;
-      EXSR PRTSQL;
-    endif;
+    EXSR PRTSQL;
 
     exec sql
         GET DIAGNOSTICS EXCEPTION 1 :Msg = MESSAGE_TEXT;
@@ -464,8 +497,8 @@ dcl-proc BuildPreds;
   dcl-s alias     varchar(20);
   dcl-s tokenCnt  int(10) inz(0);
 
-  dcl-c APICE       '''';
-  dcl-c DOPPIOAPICE '''''';
+  dcl-c cQuote       '''';
+  dcl-c cDoubleQuote '''''';
 
   // Carico i token nell'array
   a(1) = t1;
@@ -477,7 +510,7 @@ dcl-proc BuildPreds;
   for n = 1 to 5;
     if %trim(a(n)) <> '';
       // Escapo gli apici nel token
-      lit = %scanrpl(APICE : DOPPIOAPICE : %trimr(a(n)));
+      lit = %scanrpl(cQuote : cDoubleQuote : %trimr(a(n)));
 
       // Costruisco il predicato di riga (pred) in base a regexp/like
       if useRx;
@@ -645,37 +678,39 @@ end-proc;
       /COPY QRPGLESRC,ERRNO_H
 // =======================================================================
 **CTDATA CMDARR
-CPYTOIMPF FROMFILE(QTEMP/RESULTS) TOSTMF('&path') MBROPT(*REPLACE)
+CPYTOIMPF FROMFILE(&wrklib/RESULTS) TOSTMF('&path') MBROPT(*REPLACE)
 STMFCCSID(1208) STMFAUT(*INDIR) RCDDLM(*CRLF) FLDDLM(';')
 **CTDATA SSQL1
-insert into qtemp/mbrlist
-select a.system_table_schema, a.system_table_name, a.system_table_member, 
+insert into &wrklib/mbrlist
+select a.system_table_schema, a.system_table_name, a.system_table_member,
 ifnull(a.partition_text, '') as mbrdesc, ifnull(a.source_type, '') as source_type
 FROM qsys2.syspartitionstat a
 inner join qsys2.systables c on a.system_table_schema=c.system_table_schema
-and a.system_table_name=c.system_table_name and c.file_type='S'
+and a.system_table_name=c.system_table_name 
 inner join qsys2.library_list_info b on a.system_table_schema=b.system_schema_name
-and b.type<>'SYSTEM' and b.system_schema_name<>'QSYS' 
+where c.file_type='S' and b.system_schema_name not in ('QSYS', 'QSYS2') and b.type<>'SYSTEM' 
 &where
 **CTDATA SSQL2
-insert into qtemp/mbrlist
-select a.system_table_schema, a.system_table_name, a.system_table_member, 
+insert into &wrklib/mbrlist
+select a.system_table_schema, a.system_table_name, a.system_table_member,
 ifnull(a.partition_text, '') as mbrdesc, ifnull(a.source_type, '') as source_type
 FROM qsys2.syspartitionstat a
-where a.system_table_schema='&lib'
+inner join qsys2.systables c on a.system_table_schema=c.system_table_schema
+and a.system_table_name=c.system_table_name 
+where a.system_table_schema='&lib' and c.file_type='S'
 &where
 **CTDATA SSQL3
-INSERT INTO qtemp/RESULTS (LIB,SRCFILE,MBR,MBRDESC,SRCTYPE,SRCSEQ,SRCDTA) 
-WITH BASE AS (SELECT SRCSEQ, SRCDTA FROM qtemp/&alias),
+INSERT INTO &wrklib/RESULTS (LIB, SRCFILE, MBR, MBRDESC, SRCTYPE, SRCSEQ, SRCDTA)
+WITH BASE AS (SELECT SRCSEQ, SRCDTA FROM &wrklib/&alias),
 CHK AS (SELECT &having
 FROM BASE)
-SELECT '&lib' AS LIB, '&srcfile' AS FILE, '&mbr' AS MBR, '&mbrdesc' AS MBRDESC, 
+SELECT '&lib' AS LIB, '&srcfile' AS FILE, '&mbr' AS MBR, '&mbrdesc' AS MBRDESC,
 '&srctype' AS SRCTYPE, DIGITS(SRCSEQ), SRCDTA
 FROM BASE, CHK WHERE (&predLine)
   AND (&predAny)
 ORDER BY SRCSEQ
 **CTDATA SSQL4
-INSERT INTO qtemp/RESULTS (LIB,SRCFILE,MBR,MBRDESC,SRCTYPE,SRCSEQ,SRCDTA) 
+INSERT INTO &wrklib/RESULTS (LIB,SRCFILE,MBR,MBRDESC,SRCTYPE,SRCSEQ,SRCDTA)
 values('Library', 'Src File', 'Member', 'Description', 'Src Type', 'Seq.Nr', 'Row')
 **CTDATA SWHR1
 and a.system_table_name = '&file'

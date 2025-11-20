@@ -55,6 +55,9 @@ FILLIB:      QUAL       TYPE(*NAME) LEN(10) DFT(QRPGLESRC) +
              PARM       KWD(REGEXP) TYPE(*CHAR) LEN(4) DFT(*NO) +
                           VALUES(*NO *YES) PROMPT('Use REGEXP_LIKE') RSTD(*YES)
 
+             PARM       KWD(EXITPGM) TYPE(*CHAR) LEN(1) DFT(' ') +
+                          PROMPT('Exit program suffix')
+
 /* Output */
              PARM       KWD(CSVFOLDER) TYPE(*CHAR) LEN(500) DFT(*USRHOME) +
                           PROMPT('Output CSV folder or *USRHOME')
@@ -64,6 +67,10 @@ FILLIB:      QUAL       TYPE(*NAME) LEN(10) DFT(QRPGLESRC) +
 
              PARM       KWD(APPEND) TYPE(*CHAR) LEN(4) DFT(*NO) +
                           VALUES(*NO *YES) PROMPT('Append to CSV if exists') RSTD(*YES)
+
+/* Debug */
+             PARM       KWD(WRKLIB) TYPE(*CHAR) LEN(10) DFT(QTEMP) +
+                          PROMPT('Work library')
 
              PARM       KWD(LOG) TYPE(*CHAR) LEN(4) DFT(*NO) +
                           VALUES(*NO *YES) PROMPT('Log SQL statement to spool') RSTD(*YES)
