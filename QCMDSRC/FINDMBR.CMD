@@ -24,7 +24,6 @@
 /* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE  */
 /* SOFTWARE.                                                                      */
 /* ============================================================================== */
-
              CMD        PROMPT('Search text in source members')
 
 /* Lista FILE/LIB obbligatoria (1\Z10 occorrenze) */
@@ -37,10 +36,6 @@ FILLIB:      QUAL       TYPE(*NAME) LEN(10) DFT(QRPGLESRC) +
              QUAL       TYPE(*NAME) LEN(10) DFT(*LIBL) +
                           SPCVAL((*LIBL) (*CURLIB)) +
                           CHOICE('Library') PROMPT('Library')
-
-/* Membro (generico o *ALL) */
-             PARM       KWD(MBR) TYPE(*NAME) LEN(10) DFT(*ALL) SPCVAL(*ALL) +
-                          PROMPT('Member (generic or *ALL)')
 
 /* Ricerca: fino a 5 token */
              PARM       KWD(TOK1) TYPE(*CHAR) LEN(60) PROMPT('Token 1')
