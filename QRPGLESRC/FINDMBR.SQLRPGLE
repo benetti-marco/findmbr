@@ -97,6 +97,9 @@ end-pi;
 
 dcl-s useRegex ind   inz(*off);
 dcl-s logSQL ind   inz(*off);
+dcl-s iS2   ind   inz(*off);
+dcl-s iS3   ind   inz(*off);
+dcl-s iFile ind   inz(*off);
 dcl-s vCase    char(1) inz('I');
 dcl-s rxFlag   char(1) inz('i');
 
@@ -110,7 +113,6 @@ dcl-s i1        int(10)        inz(0);
 dcl-s r        int(20)        inz(0);
 dcl-s f         int(5)        inz(0);
 dcl-s x         int(5)        inz(0);
-dcl-s alias     varchar(18)    inz('');
 dcl-s expr      varchar(64)    inz('');
 dcl-s sql       varchar(32766) inz('');
 dcl-s predLine  varchar(32766) inz('');
@@ -125,8 +127,10 @@ dcl-s tmpstring   varchar(100)       inz('');
 dcl-s srctype   char(10)       inz('');
 dcl-s cmd       char(1024)  inz('');
 dcl-s sqlcmd    varchar(10000)  inz('');
+dcl-s sqltmp    varchar(2000)  inz('');
 dcl-s swhere    varchar(1000)  inz('');
-dcl-s sfile     varchar(1000)  inz('');
+dcl-s sfile     varchar(10)  inz('');
+dcl-s slib     varchar(10)  inz('');
 dcl-s Msg       varchar(30000);
 dcl-s lines     varchar(100) dim(500);
 
@@ -250,27 +254,20 @@ exec sql execute immediate :sqlcmd;
 exsr PRTERR;
 
 // Carica coppie FILE/LIB (supporta *SRCPF)
+iS2=*off;
+iS3=*off;
 for f = 1 to p_file.p_filecount;
+  iFile=*off;
   i1=20*(f-1)+1;
   FileEntry=%subst(p_file.p_filestr:i1:20);
   if %trim(FileEntry)<>'';
       sqlcmd ='';
-      if %upper(FileEntry.Lib)='*LIBL';
-        for i=1 to %elem(SSQL1);
-          if SSQL1(i)='';
-            leave;
-          endif;
-          sqlcmd = %trimr(sqlcmd)+' '+%TRIMR(SSQL1(i));
-        endfor;
-      else;
-        for i=1 to %elem(SSQL2);
-          if SSQL2(i)='';
-            leave;
-          endif;
-          sqlcmd = %trimr(sqlcmd)+' '+%TRIMR(SSQL2(i));
-        endfor;
-        sqlcmd=%scanrpl('&lib':%trim(%upper(FileEntry.Lib)):sqlcmd);
-      endif;
+      for i=1 to %elem(SSQL2);
+        if SSQL2(i)='';
+          leave;
+        endif;
+        sqlcmd = %trimr(sqlcmd)+' '+%TRIMR(SSQL2(i));
+      endfor;
       if %upper(FileEntry.File)='*SRCPF';
         sqlcmd=%scanrpl('&where':'':sqlcmd);
       else;
@@ -280,18 +277,35 @@ for f = 1 to p_file.p_filecount;
         else;
           swhere=SWHR1(2);
         endif;
-        swhere=%scanrpl('&file':%trim(sfile):swhere);
+  //      swhere=%scanrpl('&file':%trim(sfile):swhere);
         sqlcmd=%scanrpl('&where':swhere:sqlcmd);
+        iFile=*on;
       endif;
       sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+  //    sqlcmd=%scanrpl('&lib':%trim(%upper(FileEntry.Lib)):sqlcmd);
+      sLib=%upper(FileEntry.Lib);
       exsr PRTLOG;
-      exec sql execute immediate :sqlcmd;
+      if  iFile=*off;
+        if iS2=*off;
+          exec sql prepare s2 from :sqlcmd;
+          exsr PRTERR;
+          iS2=*on;
+        endif;
+        exec sql execute s2 using :sLib;
+      else;
+        if iS3=*off;
+          exec sql prepare s3 from :sqlcmd;
+          exsr PRTERR;
+          iS3=*on;
+        endif;
+        exec sql execute s3 using :sLib , :sfile;
+      endif;
       exsr PRTERR;
   endif;
 endfor;
 
 // Espressione e filtro commenti
-if vCase='I';
+if vCase='I' and useRegex=*off;
   expr ='UPPER(SRCDTA)';
 else;
   expr ='SRCDTA';
@@ -311,8 +325,7 @@ exec sql execute immediate :sqlcmd;
 exsr PRTERR;
 
 // Cursor candidati e loop membri
-sqlcmd='select lib, srcfile, mbr, mbrdesc, srctype from &wrklib/mbrlist'+
- ' order by lib, srcfile, mbr';
+sqlcmd=SSQL1(1);
 sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
 exec sql declare C cursor for s1;
 exec sql prepare s1 from :sqlcmd;
@@ -320,56 +333,56 @@ exsr PRTERR;
 exec sql open C;
 exsr PRTERR;
 
+// Set where and having
+BuildPreds( expr : useRegex : rxFlag : vCase
+          : p_TOK1 : p_TOK2 : p_TOK3 : p_TOK4 : p_TOK5 : p_MODE
+          : predLine : predAny : having);
+
+// Insert matching lines
+sqltmp='';
+for i=1 to %elem(SSQL3);
+    if SSQL3(i)='';
+      leave;
+    endif;
+    sqltmp = %trimr(sqltmp)+' '+%TRIMR(SSQL3(i));
+endfor;
+sqltmp=%scanrpl('&having':%trim(having):sqltmp);
+sqltmp=%scanrpl('&predAny':%trim(predAny):sqltmp);
+sqltmp=%scanrpl('&predLine':%trim(predLine):sqltmp);
+sqltmp=%scanrpl('&wrklib':%trim(p_WRKLIB):sqltmp);
+
+
 r=0;
 dow '00000' = sqlstate;
-  exec sql fetch C into :lib,:srcfile,:mbr,:mbrdesc,:srctype;
+  exec sql fetch C into :lib, :srcfile, :mbr, :mbrdesc, :srctype;
   if sqlcode<>0;
   leave;
   endif;
 
   r = r+1;
-  // Alias univoco
-  alias = 'FINDMBR';
-
   // Create alias for member
-  sqlcmd = 'CREATE OR REPLACE ALIAS &wrklib/' + %trim(alias) +
+  sqlcmd = 'CREATE OR REPLACE ALIAS &wrklib/FINDMBR' +
         ' FOR "' + %trim(lib) + '"/"' + %trim(srcfile) + '"("' + %trim(mbr) + '")';
   sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
   exsr PRTLOG;
   exec sql execute immediate :sqlcmd;
   exsr PRTERR;
 
-  // Set where and having
-  BuildPreds( expr : useRegex : rxFlag : vCase
-            : p_TOK1 : p_TOK2 : p_TOK3 : p_TOK4 : p_TOK5 : p_MODE
-            : predLine : predAny : having);
-
-  // Insert matching lines
-  sqlcmd='';
-  for i=1 to %elem(SSQL3);
-      if SSQL3(i)='';
-        leave;
-      endif;
-      sqlcmd = %trimr(sqlcmd)+' '+%TRIMR(SSQL3(i));
-  endfor;
+  sqlcmd=sqltmp;
   sqlcmd=%scanrpl('&lib':%trim(lib):sqlcmd);
   sqlcmd=%scanrpl('&srcfile':%trim(srcfile):sqlcmd);
   tmpstring=%scanrpl(cQuote : cDoubleQuote : %trimr(mbrdesc));
   sqlcmd=%scanrpl('&mbrdesc':%trim(tmpstring):sqlcmd);
   sqlcmd=%scanrpl('&mbr':%trim(mbr):sqlcmd);
   sqlcmd=%scanrpl('&srctype':%trim(srctype):sqlcmd);
-  sqlcmd=%scanrpl('&alias':%trim(alias):sqlcmd);
-  sqlcmd=%scanrpl('&having':%trim(having):sqlcmd);
-  sqlcmd=%scanrpl('&predAny':%trim(predAny):sqlcmd);
-  sqlcmd=%scanrpl('&predLine':%trim(predLine):sqlcmd);
-  sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+
   if r=1;
     exsr PRTLOG;
   endif;
   exec sql execute immediate :sqlcmd;
   exsr PRTERR;
 
-  sqlcmd = 'DROP ALIAS &wrklib/' + %trim(alias);
+  sqlcmd = 'DROP ALIAS &wrklib/FINDMBR';
   sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
   exec sql execute immediate :sqlcmd;
   exsr PRTERR;
@@ -681,15 +694,7 @@ end-proc;
 CPYTOIMPF FROMFILE(&wrklib/RESULTS) TOSTMF('&path') MBROPT(*REPLACE)
 STMFCCSID(1208) STMFAUT(*INDIR) RCDDLM(*CRLF) FLDDLM(';')
 **CTDATA SSQL1
-insert into &wrklib/mbrlist
-select a.system_table_schema, a.system_table_name, a.system_table_member,
-ifnull(a.partition_text, '') as mbrdesc, ifnull(a.source_type, '') as source_type
-FROM qsys2.syspartitionstat a
-inner join qsys2.systables c on a.system_table_schema=c.system_table_schema
-and a.system_table_name=c.system_table_name 
-inner join qsys2.library_list_info b on a.system_table_schema=b.system_schema_name
-where c.file_type='S' and b.system_schema_name not in ('QSYS', 'QSYS2') and b.type<>'SYSTEM' 
-&where
+select lib, srcfile, mbr, mbrdesc, srctype from &wrklib/mbrlist order by lib, srcfile, mbr
 **CTDATA SSQL2
 insert into &wrklib/mbrlist
 select a.system_table_schema, a.system_table_name, a.system_table_member,
@@ -697,11 +702,11 @@ ifnull(a.partition_text, '') as mbrdesc, ifnull(a.source_type, '') as source_typ
 FROM qsys2.syspartitionstat a
 inner join qsys2.systables c on a.system_table_schema=c.system_table_schema
 and a.system_table_name=c.system_table_name 
-where a.system_table_schema='&lib' and c.file_type='S'
+where a.system_table_schema= ? and c.file_type='S'
 &where
 **CTDATA SSQL3
 INSERT INTO &wrklib/RESULTS (LIB, SRCFILE, MBR, MBRDESC, SRCTYPE, SRCSEQ, SRCDTA)
-WITH BASE AS (SELECT SRCSEQ, SRCDTA FROM &wrklib/&alias),
+WITH BASE AS (SELECT SRCSEQ, SRCDTA FROM &wrklib/FINDMBR),
 CHK AS (SELECT &having
 FROM BASE)
 SELECT '&lib' AS LIB, '&srcfile' AS FILE, '&mbr' AS MBR, '&mbrdesc' AS MBRDESC,
