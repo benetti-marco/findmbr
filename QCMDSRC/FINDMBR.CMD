@@ -26,15 +26,15 @@
 /* ============================================================================== */
              CMD        PROMPT('Search text in source members')
 
-/* Lista FILE/LIB obbligatoria (1\Z10 occorrenze) */
+/* Lista FILE/LIB obbligatoria (10 occorrenze) */
              PARM       KWD(FILE) TYPE(FILLIB) MIN(1) MAX(10) +
                           PROMPT('Source file(s)')
 
-FILLIB:      QUAL       TYPE(*NAME) LEN(10) DFT(QRPGLESRC) +
+FILLIB:      QUAL       TYPE(*NAME) LEN(10) MIN(1) +
                           SPCVAL((*SRCPF)) +
                           CHOICE('File')
-             QUAL       TYPE(*NAME) LEN(10) +
-                          CHOICE('Library') PROMPT('Library')
+             QUAL       TYPE(*NAME) LEN(10) MIN(1) CHOICE('Library') +
+                          PROMPT('Library')
 
 /* Ricerca: fino a 5 token */
              PARM       KWD(TOK1) TYPE(*CHAR) LEN(60) PROMPT('Token 1')

@@ -114,7 +114,11 @@ if %trim(p_BATCH)='*YES';
       if CMDARR(i)='';
         leave;
       endif;
-      cmd=cmd+%trimr(CMDARR(i))+' ';
+      if i=1;
+        cmd=%trimr(CMDARR(i));
+      else;
+        cmd=%trimr(cmd)+' '+%trimr(CMDARR(i));
+      endif;
     endfor;
     cmd=%scanrpl('&FILE':%trimr(sfile):cmd);
     cmd=%scanrpl('&TOK1':%trimr(p_TOK1):cmd);
@@ -137,7 +141,7 @@ if %trim(p_BATCH)='*YES';
 else;
     // interactive
     FINDMBR0(p_FILE:p_TOK1:p_TOK2:p_TOK3:p_TOK4:p_TOK5:
-      p_MODE:p_CASE:p_REGEX:p_EXITPGM:p_CSVFOLDER:p_CSVFILE:  
+      p_MODE:p_CASE:p_REGEX:p_EXITPGM:p_CSVFOLDER:p_CSVFILE:
       p_APPEND:p_WRKLIB:p_LOG);
 endif;
 
@@ -146,9 +150,9 @@ return;
 // =======================================================================
 **CTDATA CMDARR
 SBMJOB CMD(
-FINDMBR FILE(&FILE)   
-TOK1(&TOK1) TOK2(&TOK2) TOK3(&TOK3) TOK4(&TOK4) TOK5(&TOK5)                              
-MODE(&MODE) CASE(&CASE) REGEXP(&REGEXP) EXITPGM(&EXITPGM) 
-CSVFOLDER(&CSVFOLDER) CSVFILE(&CSVFILE)                        
+FINDMBR FILE(&FILE)
+TOK1('&TOK1') TOK2('&TOK2') TOK3('&TOK3') TOK4('&TOK4') TOK5('&TOK5')
+MODE(&MODE) CASE(&CASE) REGEXP(&REGEX) EXITPGM(&EXITPGM)
+CSVFOLDER('&CSVFOLDER') CSVFILE('&CSVFILE')
 APPEND(&APPEND) WRKLIB(&WRKLIB) LOG(&LOG) BCHJOB(*NO)
-) JOBQ(QSYS/QSYSNOMAX)     
+) JOBQ(QSYS/QSYSNOMAX)
