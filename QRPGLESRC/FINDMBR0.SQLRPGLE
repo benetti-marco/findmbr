@@ -701,7 +701,7 @@ select a.system_table_schema, a.system_table_name, a.system_table_member,
 ifnull(a.partition_text, '') as mbrdesc, ifnull(a.source_type, '') as source_type
 FROM qsys2.syspartitionstat a
 inner join qsys2.systables c on a.system_table_schema=c.system_table_schema
-and a.system_table_name=c.system_table_name 
+and a.system_table_name=c.system_table_name
 where a.system_table_schema= ? and c.file_type='S'
 &where
 **CTDATA SSQL3

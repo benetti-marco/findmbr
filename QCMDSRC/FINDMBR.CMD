@@ -33,8 +33,7 @@
 FILLIB:      QUAL       TYPE(*NAME) LEN(10) DFT(QRPGLESRC) +
                           SPCVAL((*SRCPF)) +
                           CHOICE('File')
-             QUAL       TYPE(*NAME) LEN(10) DFT(*LIBL) +
-                          SPCVAL((*LIBL) (*CURLIB)) +
+             QUAL       TYPE(*NAME) LEN(10) +
                           CHOICE('Library') PROMPT('Library')
 
 /* Ricerca: fino a 5 token */
@@ -74,3 +73,8 @@ FILLIB:      QUAL       TYPE(*NAME) LEN(10) DFT(QRPGLESRC) +
 
              PARM       KWD(LOG) TYPE(*CHAR) LEN(4) DFT(*NO) +
                           VALUES(*NO *YES) PROMPT('Log SQL statement to spool') RSTD(*YES)
+
+/* Batch */
+             PARM       KWD(BCHJOB) TYPE(*CHAR) LEN(4) RSTD(*YES) +
+                          DFT(*YES) VALUES(*NO *YES) PROMPT('Submit +
+                          in batch?')
