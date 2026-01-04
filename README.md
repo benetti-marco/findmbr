@@ -29,7 +29,7 @@ FINDMBR is an IBM i command that searches source members across one or more sour
 - **WRKLIB:** Work library for temp tables. Default *QTEMP*.
 - **LOG:** *NO or *YES to print SQL statements to spool. Default *\*NO*
 - **BCHJOB:** *YES to submit in batch, *NO to run interactively. Default *\*YES*
-- **JOBQ:** Job queue/lib used when BCHJOB(*YES). Default *QSYS/QUSRNOMAX*
+- **JOBQ:** Job queue/lib used when BCHJOB(*YES).
 
 ## Build/Install
 ### Create the command:
