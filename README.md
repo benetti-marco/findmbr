@@ -11,7 +11,7 @@ FINDMBR is an IBM i command that searches source members across one or more sour
 - Search up to 5 tokens with AND/OR semantics at line or member level.
 - Optional regular expressions via REGEXP_LIKE.
 - Case-sensitive or case-insensitive matching.
-- Supports *SRCPF shortcut or explicit FILE/LIB pairs (up to 10).
+- Supports *SRCPF keyword for indicating all source files in a library or explicit FILE/LIB pairs (up to 10).
 - Batch submission with selectable job queue.
 - CSV export to IFS with optional append.
 - Optional exit program suffix to run post-processing.
