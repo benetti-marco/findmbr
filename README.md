@@ -42,19 +42,18 @@ FINDMBR is an IBM i command that searches source members across one or more sour
 `CRTSQLRPGI OBJ(<lib>/FINDMBR0) SRCFILE(<lib>/QRPGLESRC) SRCMBR(FINDMBR0) RPGPPOPT(*LVL2)`
 
 ## Usage Examples
-- Search two files for a single token with CSV to user home:
-`FINDMBR FILE((QRPGLESRC MYLIB) (QCMDSRC MYLIB)) TOK1('customer')`
+- Search two files for a single token with CSV to user home:  
+  `FINDMBR FILE((QRPGLESRC MYLIB) (QCMDSRC MYLIB)) TOK1('customer')`
 
-- Case-sensitive AND-at-line search with CSV to specific folder:
-`FINDMBR FILE((QRPGLESRC DEVLIB)) TOK1('select') TOK2('where') MODE(*ANDLINE) CASE(*SENSITIVE) CSVFOLDER(/csv)`
+- Case-sensitive AND-at-line search with CSV to specific folder:  
+  `FINDMBR FILE((QRPGLESRC DEVLIB)) TOK1('select') TOK2('where') MODE(*ANDLINE) CASE(*SENSITIVE) CSVFOLDER(/csv)`
 
 - Batch submit to a specific job queue:
-`FINDMBR FILE((QRPGLESRC DEVLIB)) TOK1('TODO') BCHJOB(*YES) JOBQ(QBATCH/QGPL)`
+  `FINDMBR FILE((QRPGLESRC DEVLIB)) TOK1('TODO') BCHJOB(*YES) JOBQ(QBATCH/QGPL)`  
 
-- Search all source files in a library using regex.
-`FINDMBR FILE((*SRCPF MYLIB) (QCMDSRC MYLIB)) TOK1('customer|client') TOK2('address|city') `
-
-- Regex examples: ^foo (line starts with foo), bar$ (ends with bar), c.t (c then any char then t), foo|bar (foo or bar), [A-Z]{2}[0-9]+ (two letters followed by digits).
+- Search all source files in a library using regex.  
+  `FINDMBR FILE((*SRCPF MYLIB) (QCMDSRC MYLIB)) TOK1('customer|client') TOK2('address|city') `
+  Regex examples: ^foo (line starts with foo), bar$ (ends with bar), c.t (c then any char then t), foo|bar (foo or bar), [A-Z]{2}[0-9]+ (two letters followed by digits).
 
 ## Output
 - CSV: Written to CSVFOLDER/CSVFILE (UTF-8, ";" delimiter, CRLF).
