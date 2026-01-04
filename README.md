@@ -1,4 +1,4 @@
-# FINDMBR — IBM i Source-Member Search Utility
+# FINDMBR — IBM i source-member search utility
 ## Overview
 FINDMBR is an IBM i command that searches source members across one or more source files. It can run interactively or submit a batch job, and exports results to CSV in the IFS.
 
