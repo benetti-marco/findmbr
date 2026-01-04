@@ -142,9 +142,9 @@
         dcl-ds SS2132 len(132) end-ds;
 
         dcl-ds *n PSDS;
-                  //                   Nome del programma
+                  //                   Program name
             YPGMNAME char(10) POS(1);
-                  //                   Nome dell'utente (di sistema)
+                  //                   System user name
             YUSER char(10) POS(254);
 
         end-ds;
@@ -154,8 +154,8 @@
         dcl-s YTIMESTAMP timestamp  INZ(*SYS);
         dcl-s start_time timestamp;
         dcl-s time_taken int(20);
-      /copy QRPGLESRC,IFSIO_H
-      /copy QRPGLESRC,ERRNO_H
+      /copy QRPGLEINC,IFSIO_H
+      /copy QRPGLEINC,ERRNO_H
         dcl-s CMDARR    Char(100)  DIM(02) CTDATA PERRCD(1);
         dcl-s SSQL1     Char(100)  DIM(15) CTDATA PERRCD(1);
         dcl-s SSQL2     Char(100)  DIM(15) CTDATA PERRCD(1);
@@ -175,7 +175,7 @@
 
         start_time=%timestamp();
 
-        // Imposta opzioni derivate dai parametri
+        // Derive options from input parameters
         if %trim(p_REGEX)='*YES';
            useRegex=*on;
         else;
@@ -200,7 +200,7 @@
             exitpgm='findmbr'+p_EXITPGM;
         endif;
 
-        // CSV path e MBROPT
+        // Resolve CSV path and MBROPT
         exec sql values SESSION_USER into :usr;
         if %trim(p_CSVFOLDER)='*USRHOME';
            csvPath='/home/'+%trim(usr)+'/';
@@ -226,15 +226,6 @@
 
         CreatePath(csvFolder);
 
-        // Pulizia/creazione tabelle di lavoro
-        // sqlcmd = 'drop table &wrklib/results';
-        // sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
-        // exec sql execute immediate :sqlcmd;
-
-        // sqlcmd = 'drop table &wrklib/mbrlist';
-        // sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
-        // exec sql execute immediate :sqlcmd;
-
         sqlcmd = 'create or replace table &wrklib/results('+
          ' lib     varchar(10), '+
          ' srcfile varchar(10), '+
@@ -257,7 +248,7 @@
         exec sql execute immediate :sqlcmd;
         exsr PRTERR;
 
-        // Carica coppie FILE/LIB (supporta *SRCPF)
+        // Load FILE/LIB pairs (supports *SRCPF)
         iS2=*off;
         iS3=*off;
         for f = 1 to p_file.p_filecount;
@@ -308,7 +299,7 @@
           endif;
         endfor;
 
-        // Espressione e filtro commenti
+        // Expression and comment filtering
         if vCase='I' and useRegex=*off;
           expr ='UPPER(SRCDTA)';
         else;
@@ -328,7 +319,7 @@
         exec sql execute immediate :sqlcmd;
         exsr PRTERR;
 
-        // Cursor candidati e loop membri
+        // loop on members's list
         sqlcmd=SSQL1(1);
         sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
         exec sql declare C cursor for s1;
@@ -337,7 +328,7 @@
         exec sql open C;
         exsr PRTERR;
 
-        // Set where and having
+        // Build WHERE and HAVING clauses
         BuildPreds( expr : useRegex : rxFlag : vCase
                   : p_TOK1 : p_TOK2 : p_TOK3 : p_TOK4 : p_TOK5 : p_MODE
                   : predLine : predAny : having);
@@ -388,7 +379,7 @@
           exsr PRTERR;
 
         enddo;
-        
+
         sqlcmd = 'DROP ALIAS &wrklib/FINDMBR';
         sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
         exec sql execute immediate :sqlcmd;
@@ -406,8 +397,10 @@
         time_taken = %DIFF (%timestamp() : start_time : *MSECONDS);
         time_taken=time_taken/1000;
 
-        STR132='time taken: '+%EDITC(time_taken:'K')+' members:'+%EDITC(r:'Z');
-        EXSR PRTROW;
+        if logSQL=*on;
+          STR132='time taken: '+%EDITC(time_taken:'K')+' members:'+%EDITC(r:'Z');
+          EXSR PRTROW;
+        endif;
 
         *inlr = *on;
         return;
@@ -495,10 +488,10 @@
         // =======================================================================
         dcl-proc BuildPreds;
           dcl-pi BuildPreds;
-            expr        varchar(64)   const;   // es: 'UPPER(SRCDTA)' o 'SRCDTA'
+            expr        varchar(64)   const;   // e.g. 'UPPER(SRCDTA)' or 'SRCDTA'
             useRx       ind           const;   // *ON = REGEXP_LIKE, *OFF = LIKE
-            rxFlag      char(1)       const;   // 'i' o '' (vuoto)
-            vCase       char(1)       const;   // 'I' = uppercase token, 'S' = sensitive
+            rxFlag      char(1)       const;   // 'i' or empty
+            vCase       char(1)       const;   // 'I' = uppercase token, 'S' = case sensitive
             t1          varchar(60)  const;
             t2          varchar(60)  const;
             t3          varchar(60)  const;
@@ -525,7 +518,7 @@
           dcl-c cQuote       '''';
           dcl-c cDoubleQuote '''''';
 
-          // Carico i token nell'array
+          // Load tokens into the array
           a(1) = t1;
           a(2) = t2;
           a(3) = t3;
@@ -534,15 +527,15 @@
 
           for n = 1 to 5;
             if %trim(a(n)) <> '';
-              // Escapo gli apici nel token
+              // Escape quotes inside the token
               lit = %scanrpl(cQuote : cDoubleQuote : %trimr(a(n)));
 
-              // Costruisco il predicato di riga (pred) in base a regexp/like
+              // Build per-line predicate using regex or LIKE
               if useRx;
                 // REGEXP_LIKE(expr, 'lit', 'rxFlag')
                 pred = 'REGEXP_LIKE('+expr+','''+lit+''','''+rxFlag+''')';
               else;
-                // LIKE, con gestione maiuscole
+                // LIKE with uppercase handling
                 if vCase = 'I';
                   v = %upper(lit);
                 else;
@@ -551,18 +544,18 @@
                 pred = expr + ' LIKE ''%' + v + '%''';
               endif;
 
-              // Alias per questo token nella CTE CHK: HAS1, HAS2, ...
+              // Alias for this token in the CHK CTE: HAS1, HAS2, ...
               tokenCnt += 1;
               alias = 'HAS' + %trim(%char(tokenCnt));
 
-              // Aggiungo la colonna alla lista di CHK (oHaving)
+              // Add aggregate column to CHK (oHaving)
               if chkCols <> '';
                 chkCols += ', ';
               endif;
               chkCols += 'SUM(CASE WHEN ' + pred +
                          ' THEN 1 ELSE 0 END) AS ' + alias;
 
-              // Aggiungo la condizione "tutti i token presenti"
+              // Add condition for tokens being present
               if whereAll = '';
                 whereAll = alias + ' > 0';
               else;
@@ -573,7 +566,7 @@
                 endif;
               endif;
 
-              // Aggiungo il predicato alla OR-list dei record
+              // Add predicate to the OR list of records
               if whereAny = '';
                 whereAny = pred;
               else;
@@ -587,19 +580,19 @@
             endif;
           endfor;
 
-          // Output
-          oPredLine = whereAll;   // es: 1=1 AND HAS1>0 AND HAS2>0
-          oPredAny  = whereAny;   // es: pred1 OR pred2 OR ...
-          oHaving   = chkCols;    // es: SUM(CASE WHEN pred1...) AS HAS1, ...
+          // Output structures
+          oPredLine = whereAll;   // eg: 1=1 AND HAS1>0 AND HAS2>0
+          oPredAny  = whereAny;   // eg: pred1 OR pred2 OR ...
+          oHaving   = chkCols;    // eg: SUM(CASE WHEN pred1...) AS HAS1, ...
 
         end-proc;
 
         //---------------------------------------------------------------------
         //  WordWrap( text : maxLen : lines[] )
         //
-        //  testo   = stringa lunga da spezzare
-        //  maxLen  = lunghezza massima per riga
-        //  righe   = array di righe wrappate (varchar)
+        //  text    = long string to split
+        //  maxLen  = maximum length per line
+        //  lines   = array of wrapped lines (varchar)
         //---------------------------------------------------------------------
 
         dcl-proc WordWrap;
@@ -621,7 +614,7 @@
 
            dow start <= len;
 
-              // Se resta meno di pMaxLen prendi tutto
+                // If fewer than pMaxLen characters remain, take them all
               if (start + pMaxLen - 1 >= len);
                  chunk = %subst(pText : start);
                  idx=idx+1;
@@ -629,7 +622,7 @@
                  leave;
               endif;
 
-              // Altrimenti cerchiamo uno spazio *prima* del limite
+                // Otherwise look for a space before the limit
               endPos = start + pMaxLen - 1;
               pos = endPos;
 
@@ -637,20 +630,20 @@
                  pos -= 1;
               enddo;
 
-              if pos = start;
-                 // Niente spazio trovato taglio brutale
+                if pos = start;
+                  // No space found; hard cut
                  pos = endPos;
               endif;
 
-              chunk = %subst(pText : start : pos - start + 1);
-              idx=idx+1;
-              pLines(idx) = %trimr(chunk);
+                chunk = %subst(pText : start : pos - start + 1);
+                idx=idx+1;
+                pLines(idx) = %trimr(chunk);
 
-              // Avanza saltando eventuali spazi
-              start = pos + 1;
-              dow start <= len and %subst(pText : start : 1) = ' ';
-                 start += 1;
-              enddo;
+                // Advance and skip any spaces
+                start = pos + 1;
+                dow start <= len and %subst(pText : start : 1) = ' ';
+                  start += 1;
+                enddo;
 
            enddo;
 
@@ -666,7 +659,7 @@
            Dcl-S retcod       Int(10);
            Dcl-S $P           Int(5);
 
-                 //           ...Costruisco l'intera struttura
+                 // Build the full directory path if missing
             if Access(%trimr(pPath): F_OK) < 0;
 
               if errno = ENOENT;
@@ -679,19 +672,19 @@
                         WHEN $P > 0 AND %TRIM(%SUBST(pPath:1:$P))<>'/';
                             retcod=mkdir(%TRIM(%SUBST(pPath:1:$P)) :mode);
                             IF retcod<0;
-                      // gestisco errore
+                      // TODO: handle mkdir error
                             ENDIF;
                             $P=$P+1;
-        //           ....Continuo
+        //           ....Continue
                         WHEN $P > 0;
                             $P=$P+1;
                       ENDSL;
                   ENDDO;
-        //           ..Ulrimo percorso
+        // Create final path element if needed
                   IF %SUBST(pPath: %LEN(%TRIMR(pPath)):1)<>'/';
                       retcod=mkdir(%TRIM(pPath):mode);
                       IF retcod<0;
-                      // gestisco errore
+                      // TODO: handle mkdir error
                       ENDIF;
                   ENDIF;
               else;
@@ -700,11 +693,11 @@
             ENDIF;
         end-proc;
       /DEFINE ERRNO_LOAD_PROCEDURE
-      /COPY QRPGLESRC,ERRNO_H
+      /COPY QRPGLEINC,ERRNO_H
         // =======================================================================
 **CTDATA CMDARR
 CPYTOIMPF FROMFILE(&wrklib/RESULTS) TOSTMF('&path') MBROPT(*REPLACE)
-STMFCCSID(1208) STMFAUT(*INDIR) RCDDLM(*CRLF) FLDDLM(';')
+STMFCCSID(1208) STMFAUT(*INDIR) RCDDLM(*CRLF) FLDDLM(';') ADDCOLNAM(*NONE)
 **CTDATA SSQL1
 select lib, srcfile, mbr, mbrdesc, srctype from &wrklib/mbrlist order by lib, srcfile, mbr
 **CTDATA SSQL2

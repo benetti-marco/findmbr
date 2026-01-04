@@ -1,5 +1,5 @@
 /* ============================================================================== */
-/*   QCMDSRC(FINDMBR) -an advanced source-member search utility for IBM i         */
+/*   QCMDSRC(FINDMBR) - a source-member search utility for IBM i                  */
 /* ============================================================================== */
 /* ============================================================================== */
 /* MIT License                                                                    */
@@ -26,7 +26,7 @@
 /* ============================================================================== */
              CMD        PROMPT('Search text in source members')
 
-/* Lista FILE/LIB obbligatoria (10 occorrenze) */
+/* Required FILE/LIB list (up to 10 entries) */
              PARM       KWD(FILE) TYPE(FILLIB) MIN(1) MAX(10) +
                           PROMPT('Source file(s)')
 
@@ -36,7 +36,7 @@ FILLIB:      QUAL       TYPE(*NAME) LEN(10) MIN(1) +
              QUAL       TYPE(*NAME) LEN(10) MIN(1) CHOICE('Library') +
                           PROMPT('Library')
 
-/* Ricerca: fino a 5 token */
+/* Search: up to 5 tokens */
              PARM       KWD(TOK1) TYPE(*CHAR) LEN(60) PROMPT('Token 1')
              PARM       KWD(TOK2) TYPE(*CHAR) LEN(60) DFT('') PROMPT('Token 2')
              PARM       KWD(TOK3) TYPE(*CHAR) LEN(60) DFT('') PROMPT('Token 3')
@@ -65,16 +65,26 @@ FILLIB:      QUAL       TYPE(*NAME) LEN(10) MIN(1) +
                           PROMPT('Output CSV file name or *AUTO')
 
              PARM       KWD(APPEND) TYPE(*CHAR) LEN(4) DFT(*NO) +
-                          VALUES(*NO *YES) PROMPT('Append to CSV if exists') RSTD(*YES)
+                          VALUES(*NO *YES) PROMPT('Append to CSV if exists') +
+                          RSTD(*YES)
 
 /* Debug */
-             PARM       KWD(WRKLIB) TYPE(*CHAR) LEN(10) DFT(QTEMP) +
+             PARM       KWD(WRKLIB) TYPE(*NAME) LEN(10) DFT(QTEMP) +
                           PROMPT('Work library')
 
              PARM       KWD(LOG) TYPE(*CHAR) LEN(4) DFT(*NO) +
-                          VALUES(*NO *YES) PROMPT('Log SQL statement to spool') RSTD(*YES)
+                         VALUES(*NO *YES) PROMPT('Log SQL statement to spool') +
+                         RSTD(*YES)
 
 /* Batch */
              PARM       KWD(BCHJOB) TYPE(*CHAR) LEN(4) RSTD(*YES) +
                           DFT(*YES) VALUES(*NO *YES) PROMPT('Submit +
                           in batch?')
+/* JOBQ/LIB */
+             PARM       KWD(JOBQ) TYPE(JOBQLIB) +
+                          PROMPT('Job queue')
+
+JOBQLIB:     QUAL       TYPE(*NAME) LEN(10) DFT(QUSRNOMAX) +
+                          CHOICE('Job queue')
+             QUAL       TYPE(*NAME) LEN(10) DFT(QSYS) CHOICE('Library') +
+                          PROMPT('Library')

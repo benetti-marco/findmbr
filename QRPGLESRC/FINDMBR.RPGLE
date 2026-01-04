@@ -64,6 +64,7 @@
           p_WRKLIB     char(10);
           p_LOG        char(4);
           p_BATCH      char(4);
+          p_JOBQ       char(20);
         end-pi;
 
         dcl-pr FINDMBR0 extpgm('FINDMBR0');
@@ -89,6 +90,27 @@
         dcl-s i1        int(10)        inz(0);
         dcl-s sfile     varchar(200);
         dcl-s cmd       char(5000);
+        dcl-s Jobqnam   char(10);
+        dcl-s Jobqlib   char(10);
+
+
+        dcl-pr SendEscMsg extpgm('QMHSNDPM');
+          msgId    char(7)   const;
+          msgFile  char(20)  const;
+          msgData  char(256) const;
+          msgLen   int(10)   const;
+          msgType  char(10)  const;
+          callStk  char(10)  const;
+          callStkCnt int(10) const;
+          msgKey   char(4);
+          errCode  char(8);
+        end-pr;
+
+        dcl-pr FailWith;
+            txt varchar(256) const;
+        end-pr;
+        dcl-s msgKey char(4);
+        dcl-s errCode char(8) inz(*loval);
 
         dcl-s CMDARR    Char(100)  DIM(7) CTDATA PERRCD(1);
 
@@ -97,19 +119,65 @@
         // ===================================================================
 
 
-        // Imposta opzioni derivate dai parametri
+        // Derive behavior from input parameters
         if %trim(p_BATCH)='*YES';
             sFile='';
+          // Validate requested files/libraries before queuing the batch
             for f = 1 to p_file.p_filecount;
               i1=20*(f-1)+1;
               FileEntry=%subst(p_file.p_filestr:i1:20);
               if %trim(FileEntry)<>'';
+                  if FileEntry.File<>'*SRCPF';
+                    cmd = 'CHKOBJ OBJ(' + %trim(FileEntry.Lib) + '/' + 
+                          %trim(FileEntry.File) + ') OBJTYPE(*FILE)';
+                    monitor;
+                      QCMDEXC(cmd:%len(%trimr(cmd)));
+                    on-error;
+                      FailWith('Missing file: ' + %trim(FileEntry.Lib) + '/' +
+                        %trim(FileEntry.File));
+                      return;
+                    endmon;
+                  else;
+                    cmd = 'CHKOBJ OBJ(' + %trim(FileEntry.Lib) + 
+                          ') OBJTYPE(*LIB)';
+                    monitor;
+                      QCMDEXC(cmd:%len(%trimr(cmd)));
+                    on-error;
+                      FailWith('Invalid library: ' + %trim(FileEntry.Lib));
+                      return;
+                    endmon;
+                  endif;
                   sFile=sFile+%trim(%upper(FileEntry.Lib))+'/'+
                     %trim(%upper(FileEntry.File))+' ';
               endif;
             endfor;
 
+            Jobqnam=%subst(p_Jobq:01:10);
+            Jobqlib=%subst(p_Jobq:11:10);
+
+            // Ensure the target job queue exists before submission
+            cmd = 'CHKOBJ OBJ(' + %trim(Jobqlib) + '/'+%trim(Jobqnam)+
+                  ') OBJTYPE(*JOBQ)';
+            monitor;
+              QCMDEXC(cmd:%len(%trimr(cmd)));
+            on-error;
+              // Clear message and return
+                    FailWith('Missing job queue: '+
+                      %trim(Jobqlib)+'/'+%trim(Jobqnam));
+              return;
+            endmon;
+
+            // Ensure the working library exists
+            cmd = 'CHKOBJ OBJ(' + %trim(p_WRKLIB) + ') OBJTYPE(*LIB)';
+            monitor;
+              QCMDEXC(cmd:%len(%trimr(cmd)));
+            on-error;
+              FailWith('Invalid library: ' + %trim(p_WRKLIB));
+              return;
+            endmon;
+
             cmd='';
+            // Build the SBMJOB command by expanding placeholders
             for i = 1 to %elem(CMDARR);
               if CMDARR(i)='';
                 leave;
@@ -135,11 +203,13 @@
             cmd=%scanrpl('&APPEND':%trimr(p_APPEND):cmd);
             cmd=%scanrpl('&WRKLIB':%trimr(p_WRKLIB):cmd);
             cmd=%scanrpl('&LOG':%trimr(p_LOG):cmd);
+            cmd=%scanrpl('&JOBQNAM':%trimr(Jobqnam):cmd);
+            cmd=%scanrpl('&JOBQLIB':%trimr(Jobqlib):cmd);
 
-            // sbmjob
+            // Submit FINDMBR via SBMJOB to the specified queue
             QCMDEXC(cmd:%len(%trimr(cmd)));
         else;
-            // interactive
+            // Interactive mode: run in the current job
             FINDMBR0(p_FILE:p_TOK1:p_TOK2:p_TOK3:p_TOK4:p_TOK5:
               p_MODE:p_CASE:p_REGEX:p_EXITPGM:p_CSVFOLDER:p_CSVFILE:
               p_APPEND:p_WRKLIB:p_LOG);
@@ -148,6 +218,14 @@
         *inlr = *on;
         return;
         // =======================================================================
+        dcl-proc FailWith;
+          dcl-pi *n;
+            txt varchar(256) const;
+          end-pi;
+          SendEscMsg('CPF9898':'QCPFMSG   *LIBL':txt:%len(txt):
+                    '*INFO':'*EXT':0:msgKey:errCode);
+        end-proc;
+        // =======================================================================
 **CTDATA CMDARR
 SBMJOB CMD(
 FINDMBR FILE(&FILE)
@@ -155,4 +233,4 @@ TOK1('&TOK1') TOK2('&TOK2') TOK3('&TOK3') TOK4('&TOK4') TOK5('&TOK5')
 MODE(&MODE) CASE(&CASE) REGEXP(&REGEX) EXITPGM(&EXITPGM)
 CSVFOLDER('&CSVFOLDER') CSVFILE('&CSVFILE')
 APPEND(&APPEND) WRKLIB(&WRKLIB) LOG(&LOG) BCHJOB(*NO)
-) JOBQ(QSYS/QSYSNOMAX)
+) JOBQ(&JOBQLIB/&JOBQNAM)
