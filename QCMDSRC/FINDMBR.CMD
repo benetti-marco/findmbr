@@ -84,7 +84,7 @@ FILLIB:      QUAL       TYPE(*NAME) LEN(10) MIN(1) +
              PARM       KWD(JOBQ) TYPE(JOBQLIB) +
                           PROMPT('Job queue')
 
-JOBQLIB:     QUAL       TYPE(*NAME) LEN(10) DFT(QUSRNOMAX) +
+JOBQLIB:     QUAL       TYPE(*NAME) LEN(10) +
                           CHOICE('Job queue')
-             QUAL       TYPE(*NAME) LEN(10) DFT(QSYS) CHOICE('Library') +
+             QUAL       TYPE(*NAME) LEN(10) CHOICE('Library') +
                           PROMPT('Library')

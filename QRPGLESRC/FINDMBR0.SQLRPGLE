@@ -110,7 +110,9 @@
 
         dcl-s i         int(10)        inz(0);
         dcl-s i1        int(10)        inz(0);
-        dcl-s r        int(20)        inz(0);
+        dcl-s r         int(20)        inz(0);
+        dcl-s r2        int(20)        inz(0);
+        dcl-s rcount    int(20)        inz(0);
         dcl-s f         int(5)        inz(0);
         dcl-s x         int(5)        inz(0);
         dcl-s expr      varchar(64)    inz('');
@@ -133,6 +135,9 @@
         dcl-s slib     varchar(10)  inz('');
         dcl-s Msg       varchar(30000);
         dcl-s lines     varchar(100) dim(500);
+        dcl-s retSqlState  char(5)  inz('');
+        dcl-s retSqlCode  packed(5:0)  inz(0);
+
 
         dcl-c cQuote       '''';
         dcl-c cDoubleQuote '''''';
@@ -233,7 +238,8 @@
          ' mbrdesc varchar(50), '+
          ' srctype varchar(10), '+
          ' srcseq  varchar(6), '+
-         ' srcdta  varchar(200))';
+         ' srcdta  varchar(200)) '+
+         'on replace delete rows';
         sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
         exec sql execute immediate :sqlcmd;
         exsr PRTERR;
@@ -243,7 +249,8 @@
          ' srcfile char(10), '+
          ' mbr     char(10), '+
          ' mbrdesc char(50), '+
-         ' srctype char(10))';
+         ' srctype char(10)) '+
+         'on replace delete rows';
         sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
         exec sql execute immediate :sqlcmd;
         exsr PRTERR;
@@ -272,12 +279,12 @@
                 else;
                   swhere=SWHR1(2);
                 endif;
-          //      swhere=%scanrpl('&file':%trim(sfile):swhere);
+          
                 sqlcmd=%scanrpl('&where':swhere:sqlcmd);
                 iFile=*on;
               endif;
               sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
-          //    sqlcmd=%scanrpl('&lib':%trim(%upper(FileEntry.Lib)):sqlcmd);
+        
               sLib=%upper(FileEntry.Lib);
               exsr PRTLOG;
               if  iFile=*off;
@@ -348,11 +355,11 @@
 
 
         r=0;
+        r2=0;
+        exec sql fetch C into :lib, :srcfile, :mbr, :mbrdesc, :srctype;
+        sqlcmd='fetch';
+        exsr PRTERR;
         dow '00000' = sqlstate;
-          exec sql fetch C into :lib, :srcfile, :mbr, :mbrdesc, :srctype;
-          if sqlcode<>0;
-          leave;
-          endif;
 
           r = r+1;
           // Create alias for member
@@ -377,7 +384,15 @@
           endif;
           exec sql execute immediate :sqlcmd;
           exsr PRTERR;
-
+          if logSQL=*on;
+            exec sql GET DIAGNOSTICS :rcount = ROW_COUNT;
+            if rcount>0;
+              r2=r2+1;
+            endif;
+          endif;
+          exec sql fetch C into :lib, :srcfile, :mbr, :mbrdesc, :srctype;
+          sqlcmd='fetch';
+          exsr PRTERR;
         enddo;
 
         sqlcmd = 'DROP ALIAS &wrklib/FINDMBR';
@@ -386,6 +401,8 @@
         exsr PRTERR;
 
         exec sql close C;
+        sqlcmd='close cursor';
+        exsr PRTERR;
 
         // Export CSV
         cmd = %trim(CMDARR(1))+' '+%trim(CMDARR(2));
@@ -398,7 +415,9 @@
         time_taken=time_taken/1000;
 
         if logSQL=*on;
-          STR132='time taken: '+%EDITC(time_taken:'K')+' members:'+%EDITC(r:'Z');
+          STR132='time taken: '+%EDITC(time_taken:'K')+
+          ' members analyzed:'+%EDITC(r:'Z')+
+          ' members found:'+%EDITC(r2:'Z');
           EXSR PRTROW;
         endif;
 
@@ -409,14 +428,16 @@
         // ---------------------------------------------------------------
         BEGSR PRTERR;
 
-          if sqlcod < 0;
+          if sqlcod<0;
 
             EXSR PRTSQL;
 
             exec sql
-                GET DIAGNOSTICS EXCEPTION 1 :Msg = MESSAGE_TEXT;
+                GET DIAGNOSTICS EXCEPTION 1 :Msg = MESSAGE_TEXT,
+                :retSqlCode = DB2_RETURNED_SQLCODE,
+                :retSqlState = RETURNED_SQLSTATE;
 
-            STR132='SQLCOD '+%editc(sqlcod:'P');
+            STR132='SQLCOD '+%editc(retSqlCode:'P')+ ' - SQLSTATE '+retSqlState;
             EXSR PRTROW;
             WordWrap( Msg : 100 : lines );
 
@@ -448,6 +469,7 @@
         // ---------------------------------------------------------------
         BEGSR PRTSQL;
 
+          if sqlcmd<>'';
             WordWrap( sqlcmd : 80 : lines );
 
             for i = 1 to %elem(lines);
@@ -460,6 +482,7 @@
             endfor;
             SS1132=*all'-';
             write QSYSPRT SS1132;
+          endif;
 
         ENDSR;
         // ---------------------------------------------------------------

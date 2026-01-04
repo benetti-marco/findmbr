@@ -113,6 +113,7 @@
         dcl-s errCode char(8) inz(*loval);
 
         dcl-s CMDARR    Char(100)  DIM(7) CTDATA PERRCD(1);
+        dcl-s CMDJOBQ   Char(100)  DIM(1) CTDATA PERRCD(1);
 
         // ===================================================================
         //            MAIN
@@ -155,17 +156,19 @@
             Jobqnam=%subst(p_Jobq:01:10);
             Jobqlib=%subst(p_Jobq:11:10);
 
-            // Ensure the target job queue exists before submission
-            cmd = 'CHKOBJ OBJ(' + %trim(Jobqlib) + '/'+%trim(Jobqnam)+
-                  ') OBJTYPE(*JOBQ)';
-            monitor;
-              QCMDEXC(cmd:%len(%trimr(cmd)));
-            on-error;
-              // Clear message and return
-                    FailWith('Missing job queue: '+
-                      %trim(Jobqlib)+'/'+%trim(Jobqnam));
-              return;
-            endmon;
+            if Jobqnam<>'';
+              // Ensure the target job queue exists before submission
+              cmd = 'CHKOBJ OBJ(' + %trim(Jobqlib) + '/'+%trim(Jobqnam)+
+                    ') OBJTYPE(*JOBQ)';
+              monitor;
+                QCMDEXC(cmd:%len(%trimr(cmd)));
+              on-error;
+                // Clear message and return
+                      FailWith('Missing job queue: '+
+                        %trim(Jobqlib)+'/'+%trim(Jobqnam));
+                return;
+              endmon;
+            endif;
 
             // Ensure the working library exists
             cmd = 'CHKOBJ OBJ(' + %trim(p_WRKLIB) + ') OBJTYPE(*LIB)';
@@ -188,6 +191,9 @@
                 cmd=%trimr(cmd)+' '+%trimr(CMDARR(i));
               endif;
             endfor;
+            if Jobqnam<>'';
+                cmd=%trimr(cmd)+' '+%trimr(CMDJOBQ(1));
+            endif;
             cmd=%scanrpl('&FILE':%trimr(sfile):cmd);
             cmd=%scanrpl('&TOK1':%trimr(p_TOK1):cmd);
             cmd=%scanrpl('&TOK2':%trimr(p_TOK2):cmd);
@@ -233,4 +239,6 @@ TOK1('&TOK1') TOK2('&TOK2') TOK3('&TOK3') TOK4('&TOK4') TOK5('&TOK5')
 MODE(&MODE) CASE(&CASE) REGEXP(&REGEX) EXITPGM(&EXITPGM)
 CSVFOLDER('&CSVFOLDER') CSVFILE('&CSVFILE')
 APPEND(&APPEND) WRKLIB(&WRKLIB) LOG(&LOG) BCHJOB(*NO)
-) JOBQ(&JOBQLIB/&JOBQNAM)
+) 
+**CTDATA CMDJOBQ
+JOBQ(&JOBQLIB/&JOBQNAM)
