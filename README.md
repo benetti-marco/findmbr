@@ -17,19 +17,19 @@ FINDMBR is an IBM i command that searches source members across one or more sour
 - Optional exit program suffix to run post-processing.
 
 ## Command Parameters (FINDMBR)
-- **FILE:** One or more FILE/LIB pairs (up to 10). *SRCPF allowed as file name.
+- **FILE:** One or more FILE/LIB pairs (up to 10). The *\*SRCPF* keyword is valid for indicating a search across all source files in a library.
 - **TOK1…TOK5:** Up to five search tokens. Tokens can be regex when REGEXP(*YES).
-- **MODE:** *OR (any token), *ANDLINE (all tokens on same line), *ANDMBR (all tokens somewhere in member). Default: *ANDMBR
-- **CASE:** *INSENSITIVE (default) or *SENSITIVE. Default: *INSENSITIVE
-- **REGEXP:** *NO (default) or *YES to use REGEXP_LIKE (POSIX extended syntax). Default *NO 
+- **MODE:** *OR (any token), *ANDLINE (all tokens on same line), *ANDMBR (all tokens somewhere in member). Default: *\*ANDMBR*
+- **CASE:** *INSENSITIVE (default) or *SENSITIVE. Default: *\*INSENSITIVE*
+- **REGEXP:** *NO (default) or *YES to use REGEXP_LIKE (POSIX extended syntax). Default *\*NO* 
 - **EXITPGM:** Optional single-character suffix to call FINDMBR<suffix> after search.
-- **CSVFOLDER:** IFS folder for output or *USRHOME (for /home/<user>). Default *USRHOME
-- **CSVFILE:** File name or *AUTO (timestamped, e.g. findmbr_2026-01-04-16.02.39.688000.csv). Default *AUTO
-- **APPEND:** *NO (replace) or *YES (append) for CSV. Default *NO
-- **WRKLIB:** Work library for temp tables Default QTEMP.
-- **LOG:** *NO or *YES to print SQL statements to spool. Default *NO
-- **BCHJOB:** *YES to submit in batch, *NO to run interactively. Default *YES
-- **JOBQ:** Job queue/lib used when BCHJOB(*YES). Default QSYS/QUSRNOMAX
+- **CSVFOLDER:** IFS folder for output or *USRHOME (for /home/<user>). Default *\*USRHOME*
+- **CSVFILE:** File name or *AUTO (timestamped, e.g. `findmbr_2026-01-04-16.02.39.688000.csv`). Default *\*AUTO*
+- **APPEND:** *NO (replace) or *YES (append) for CSV. Default *\*NO*
+- **WRKLIB:** Work library for temp tables Default *QTEMP*.
+- **LOG:** *NO or *YES to print SQL statements to spool. Default *\*NO*
+- **BCHJOB:** *YES to submit in batch, *NO to run interactively. Default *\*YES*
+- **JOBQ:** Job queue/lib used when BCHJOB(*YES). Default *QSYS/QUSRNOMAX*
 
 ## Build/Install
 ### Create the command:
@@ -48,7 +48,7 @@ Case-sensitive AND-at-line search with CSV to specific folder:
 `FINDMBR FILE((QRPGLESRC DEVLIB)) TOK1('select') TOK2('where') MODE(*ANDLINE) CASE(*SENSITIVE) CSVFOLDER(/csv)`
 Batch submit to a specific job queue:
 `FINDMBR FILE((QRPGLESRC DEVLIB)) TOK1('TODO') BCHJOB(*YES) JOBQ(QBATCH/QGPL)`
-Search all files in a library using regex.
+Search all source files in a library using regex.
 `FINDMBR FILE((*SRCPF MYLIB) (QCMDSRC MYLIB)) TOK1('customer|client') TOK2('address|city') `
 Regex examples: ^foo (line starts with foo), bar$ (ends with bar), c.t (c then any char then t), foo|bar (foo or bar), [A-Z]{2}[0-9]+ (two letters followed by digits).
 
