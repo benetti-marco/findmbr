@@ -52,8 +52,8 @@ FINDMBR is an IBM i command that searches source members across one or more sour
   `FINDMBR FILE((QRPGLESRC DEVLIB)) TOK1('TODO') BCHJOB(*YES) JOBQ(QBATCH/QGPL)`  
 
 - Search all source files in a library using regex.  
-  `FINDMBR FILE((*SRCPF MYLIB) (QCMDSRC MYLIB)) TOK1('customer|client') TOK2('address|city') `
-  Regex examples: ^foo (line starts with foo), bar$ (ends with bar), c.t (c then any char then t), foo|bar (foo or bar), [A-Z]{2}[0-9]+ (two letters followed by digits).
+  `FINDMBR FILE((*SRCPF MYLIB) (QCMDSRC MYLIB)) TOK1('customer|client') TOK2('address|city') `  
+  **Regex examples:** *^foo* (line starts with foo), *bar$* (ends with bar), *c.t* (c then any char then t), *foo|bar* (foo or bar), *[A-Z]{2}[0-9]+* (two letters followed by digits).
 
 ## Output
 - CSV: Written to CSVFOLDER/CSVFILE (UTF-8, ";" delimiter, CRLF).
