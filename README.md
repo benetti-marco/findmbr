@@ -19,16 +19,16 @@ FINDMBR is an IBM i command that searches source members across one or more sour
 ## Command Parameters (FINDMBR)
 - **FILE:** One or more FILE/LIB pairs (up to 10). The *\*SRCPF* keyword is valid for indicating a search across all source files in a library.
 - **TOK1…TOK5:** Up to five search tokens. Tokens can be regex when REGEXP(*YES).
-- **MODE:** *OR (any token), *ANDLINE (all tokens on same line), *ANDMBR (all tokens somewhere in member). Default: *\*ANDMBR*
-- **CASE:** *INSENSITIVE (default) or *SENSITIVE. Default: *\*INSENSITIVE*
-- **REGEXP:** *NO (default) or *YES to use REGEXP_LIKE (POSIX extended syntax). Default *\*NO* 
+- **MODE:** *OR (any token), *ANDLINE (all tokens on same line), *ANDMBR (all tokens somewhere in member). Default: *\*ANDMBR*.
+- **CASE:** *INSENSITIVE (default) or *SENSITIVE. Default: *\*INSENSITIVE*.
+- **REGEXP:** *NO (default) or *YES to use REGEXP_LIKE (POSIX extended syntax). Default *\*NO*.
 - **EXITPGM:** Optional single-character suffix to call FINDMBR<suffix> after search.
-- **CSVFOLDER:** IFS folder for output or *USRHOME (for /home/<user>). Default *\*USRHOME*
-- **CSVFILE:** File name or *AUTO (timestamped, e.g. `findmbr_2026-01-04-16.02.39.688000.csv`). Default *\*AUTO*
-- **APPEND:** *NO (replace) or *YES (append) for CSV. Default *\*NO*
+- **CSVFOLDER:** IFS folder for output or *USRHOME (for /home/<user>). Default *\*USRHOME*.
+- **CSVFILE:** File name or *AUTO (timestamped, e.g. `findmbr_2026-01-04-16.02.39.688000.csv`). Default *\*AUTO*.
+- **APPEND:** *NO (replace) or *YES (append) for CSV. Default *\*NO*.
 - **WRKLIB:** Work library for temp tables. Default *QTEMP*.
-- **LOG:** *NO or *YES to print SQL statements to spool. Default *\*NO*
-- **BCHJOB:** *YES to submit in batch, *NO to run interactively. Default *\*YES*
+- **LOG:** *NO or *YES to print SQL statements to spool. Default *\*NO*.
+- **BCHJOB:** *YES to submit in batch, *NO to run interactively. Default *\*YES*.
 - **JOBQ:** Job queue/lib used when BCHJOB(*YES).
 
 ## Build/Install
