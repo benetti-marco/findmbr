@@ -1,7 +1,7 @@
 **FREE
         // ============================================================================== //
-        // PGM for command FINDMBR - an advanced source-member search utility for IBM i   //
-        // Compile with: CRTSQLRPGI OBJ(FINDMBRPGM)                                       //
+        // PGM for command FINDMBR -  IBM i source-member search utility                  //
+        // Compile with: CRTBNDRPG PGM(MYLIB/FINDMBR) SRCFILE(MYLIB/QRPGLESRC)            // 
         // ============================================================================== //
         // ============================================================================== //
         // MIT License                                                                    //
@@ -129,7 +129,7 @@
               FileEntry=%subst(p_file.p_filestr:i1:20);
               if %trim(FileEntry)<>'';
                   if FileEntry.File<>'*SRCPF';
-                    cmd = 'CHKOBJ OBJ(' + %trim(FileEntry.Lib) + '/' + 
+                    cmd = 'CHKOBJ OBJ(' + %trim(FileEntry.Lib) + '/' +
                           %trim(FileEntry.File) + ') OBJTYPE(*FILE)';
                     monitor;
                       QCMDEXC(cmd:%len(%trimr(cmd)));
@@ -139,7 +139,7 @@
                       return;
                     endmon;
                   else;
-                    cmd = 'CHKOBJ OBJ(' + %trim(FileEntry.Lib) + 
+                    cmd = 'CHKOBJ OBJ(' + %trim(FileEntry.Lib) +
                           ') OBJTYPE(*LIB)';
                     monitor;
                       QCMDEXC(cmd:%len(%trimr(cmd)));
@@ -239,6 +239,6 @@ TOK1('&TOK1') TOK2('&TOK2') TOK3('&TOK3') TOK4('&TOK4') TOK5('&TOK5')
 MODE(&MODE) CASE(&CASE) REGEXP(&REGEX) EXITPGM(&EXITPGM)
 CSVFOLDER('&CSVFOLDER') CSVFILE('&CSVFILE')
 APPEND(&APPEND) WRKLIB(&WRKLIB) LOG(&LOG) BCHJOB(*NO)
-) 
+)
 **CTDATA CMDJOBQ
 JOBQ(&JOBQLIB/&JOBQNAM)

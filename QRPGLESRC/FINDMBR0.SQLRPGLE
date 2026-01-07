@@ -1,7 +1,8 @@
 **FREE
         // ============================================================================== //
-        // PGM for command FINDMBR - an advanced source-member search utility for IBM i   //
-        // Compile with: CRTSQLRPGI OBJ(FINDMBR0) RPGPPOPT(*LVL2)                         //
+        // PGM for command FINDMBR -  IBM i source-member search utility                  //
+        // Compile with: CRTSQLRPGI OBJ(MYLIB/FINDMBR0) SRCFILE(MYLIB/QRPGLESRC)          //
+        //               RPGPPOPT(*LVL2)                                                  //    
         // ============================================================================== //
         // ============================================================================== //
         // MIT License                                                                    //
@@ -125,6 +126,8 @@
         dcl-s mbr       char(10)       inz('');
         dcl-s mbrdesc   char(50)       inz('');
         dcl-s exitpgm   char(10)       inz('');
+        dcl-s srcpfesc  char(10) dim(100);
+        dcl-s srcpflst  varchar(1500) inz('');
         dcl-s tmpstring   varchar(100)       inz('');
         dcl-s srctype   char(10)       inz('');
         dcl-s cmd       char(1024)  inz('');
@@ -133,11 +136,11 @@
         dcl-s swhere    varchar(1000)  inz('');
         dcl-s sfile     varchar(10)  inz('');
         dcl-s slib     varchar(10)  inz('');
+        dcl-s sconditions varchar(600) inz('');
         dcl-s Msg       varchar(30000);
         dcl-s lines     varchar(100) dim(500);
         dcl-s retSqlState  char(5)  inz('');
         dcl-s retSqlCode  packed(5:0)  inz(0);
-
 
         dcl-c cQuote       '''';
         dcl-c cDoubleQuote '''''';
@@ -151,7 +154,6 @@
             YPGMNAME char(10) POS(1);
                   //                   System user name
             YUSER char(10) POS(254);
-
         end-ds;
 
         dcl-s YTODAYISO date(*ISO)  INZ(*SYS);
@@ -166,7 +168,8 @@
         dcl-s SSQL2     Char(100)  DIM(15) CTDATA PERRCD(1);
         dcl-s SSQL3     Char(100)  DIM(15) CTDATA PERRCD(1);
         dcl-s SSQL4     Char(100)  DIM(02) CTDATA PERRCD(1);
-        dcl-s SWHR1     Char(100)  DIM(02) CTDATA PERRCD(1);
+        dcl-s SSQL5     Char(100)  DIM(02) CTDATA PERRCD(1);
+        dcl-s SWHR1     Char(100)  DIM(03) CTDATA PERRCD(1);
 
         // ===================================================================
         //            MAIN
@@ -202,7 +205,19 @@
         endif;
 
         if p_EXITPGM<>'';
-            exitpgm='findmbr'+p_EXITPGM;
+            exitpgm='FINDMBR_'+p_EXITPGM;
+            callp ExitCall(srcpfesc);
+            for x=1 to %elem(srcpfesc);
+              if srcpfesc(x)<>'';
+                if srcpflst='';
+                  srcpflst=cQuote+%trim(srcpfesc(x))+cQuote;
+                else;
+                  srcpflst=srcpflst+', '+cQuote+%trim(srcpfesc(x))+cQuote;
+                endif;
+              endif;
+            endfor;
+        else;
+            srcpflst='';
         endif;
 
         // Resolve CSV path and MBROPT
@@ -238,7 +253,7 @@
          ' mbrdesc varchar(50), '+
          ' srctype varchar(10), '+
          ' srcseq  varchar(6), '+
-         ' srcdta  varchar(200)) '+
+         ' srcdta  varchar(600)) '+
          'on replace delete rows';
         sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
         exec sql execute immediate :sqlcmd;
@@ -258,11 +273,14 @@
         // Load FILE/LIB pairs (supports *SRCPF)
         iS2=*off;
         iS3=*off;
+        sconditions='Libraries/Files:';
         for f = 1 to p_file.p_filecount;
           iFile=*off;
           i1=20*(f-1)+1;
           FileEntry=%subst(p_file.p_filestr:i1:20);
           if %trim(FileEntry)<>'';
+              sconditions=%trim(sconditions)+' '+%trim(FileEntry.Lib)+'/'
+              +%trim(FileEntry.File)+',';
               sqlcmd ='';
               for i=1 to %elem(SSQL2);
                 if SSQL2(i)='';
@@ -271,20 +289,27 @@
                 sqlcmd = %trimr(sqlcmd)+' '+%TRIMR(SSQL2(i));
               endfor;
               if %upper(FileEntry.File)='*SRCPF';
-                sqlcmd=%scanrpl('&where':'':sqlcmd);
+                if srcpflst='';
+                  sqlcmd=%scanrpl('&where':'':sqlcmd);
+                else;
+                  swhere=%trim(SWHR1(3));
+                endif;
               else;
                 sfile=%scanrpl('*':'%':%upper(FileEntry.File));
                 if %scan('%':sfile)=0;
-                  swhere=SWHR1(1);
+                  swhere=%trim(SWHR1(1));
                 else;
-                  swhere=SWHR1(2);
+                  swhere=%trim(SWHR1(2));
                 endif;
-          
-                sqlcmd=%scanrpl('&where':swhere:sqlcmd);
+                if srcpflst<>'';
+                  swhere=%trimr(swhere)+' '+%trim(SWHR1(3));
+                endif;
                 iFile=*on;
               endif;
+              sqlcmd=%scanrpl('&where':swhere:sqlcmd);
+              sqlcmd=%scanrpl('&listfile':srcpflst:sqlcmd);
               sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
-        
+
               sLib=%upper(FileEntry.Lib);
               exsr PRTLOG;
               if  iFile=*off;
@@ -305,6 +330,23 @@
               exsr PRTERR;
           endif;
         endfor;
+        sconditions=%trim(sconditions)+' Tokens: ';
+        if p_TOK1<>'';
+          sconditions=%trim(sconditions)+' '+%trim(p_TOK1)+' , ';
+        endif;
+        if p_TOK2<>'';
+          sconditions=%trim(sconditions)+' '+%trim(p_TOK2)+' , ';
+        endif;
+        if p_TOK3<>'';
+          sconditions=%trim(sconditions)+' '+%trim(p_TOK3)+' , ';
+        endif;
+        if p_TOK4<>'';
+          sconditions=%trim(sconditions)+' '+%trim(p_TOK4)+' , ';
+        endif;
+        if p_TOK5<>'';
+          sconditions=%trim(sconditions)+' '+%trim(p_TOK5);
+        endif;
+        sconditions=%scanrpl(cQuote : cDoubleQuote : %trim(sconditions));
 
         // Expression and comment filtering
         if vCase='I' and useRegex=*off;
@@ -321,6 +363,20 @@
             endif;
             sqlcmd = %trimr(sqlcmd)+' '+%TRIMR(SSQL4(i));
         endfor;
+        sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+        exsr PRTLOG;
+        exec sql execute immediate :sqlcmd;
+        exsr PRTERR;
+
+        // Insert conditions
+        sqlcmd='';
+        for i=1 to %elem(SSQL5);
+            if SSQL5(i)='';
+              leave;
+            endif;
+            sqlcmd = %trimr(sqlcmd)+' '+%TRIMR(SSQL5(i));
+        endfor;
+        sqlcmd=%scanrpl('&conditions':%trim(sconditions):sqlcmd);
         sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
         exsr PRTLOG;
         exec sql execute immediate :sqlcmd;
@@ -748,6 +804,10 @@ ORDER BY SRCSEQ
 **CTDATA SSQL4
 INSERT INTO &wrklib/RESULTS (LIB,SRCFILE,MBR,MBRDESC,SRCTYPE,SRCSEQ,SRCDTA)
 values('Library', 'Src File', 'Member', 'Description', 'Src Type', 'Seq.Nr', 'Row')
+**CTDATA SSQL5
+INSERT INTO &wrklib/RESULTS (LIB,SRCFILE,MBR,MBRDESC,SRCTYPE,SRCSEQ,SRCDTA)
+values('', '', '', 'Conditions', '', '000000', '&conditions')
 **CTDATA SWHR1
 and a.system_table_name = '&file'
 and a.system_table_name like '&file'
+and a.system_table_name NOT IN (&listfile)
