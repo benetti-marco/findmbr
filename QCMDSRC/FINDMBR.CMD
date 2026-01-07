@@ -1,5 +1,7 @@
 /* ============================================================================== */
-/*   QCMDSRC(FINDMBR) - IBM i source-member search utility                        */
+/*   QCMDSRC(FINDMBR) - IBM i source-member search utility                        */  
+/*   Compile with: CRTCMD CMD(MYLIB/FINDMBR) PGM(MYLIB/FINDMBR)                   */ 
+/*                 SRCFILE(MYLIB/QCMDSRC)                                         */
 /* ============================================================================== */
 /* ============================================================================== */
 /* MIT License                                                                    */
@@ -54,7 +56,7 @@ FILLIB:      QUAL       TYPE(*NAME) LEN(10) MIN(1) +
              PARM       KWD(REGEXP) TYPE(*CHAR) LEN(4) DFT(*NO) +
                           VALUES(*NO *YES) PROMPT('Use REGEXP_LIKE') RSTD(*YES)
 
-             PARM       KWD(EXITPGM) TYPE(*CHAR) LEN(1) DFT(' ') +
+             PARM       KWD(EXITPGM) TYPE(*CHAR) LEN(1) +
                           PROMPT('Exit program suffix')
 
 /* Output */

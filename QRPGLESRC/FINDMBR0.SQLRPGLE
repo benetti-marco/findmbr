@@ -2,7 +2,7 @@
         // ============================================================================== //
         // PGM for command FINDMBR -  IBM i source-member search utility                  //
         // Compile with: CRTSQLRPGI OBJ(MYLIB/FINDMBR0) SRCFILE(MYLIB/QRPGLESRC)          //
-        //               RPGPPOPT(*LVL2)                                                  //    
+        //               RPGPPOPT(*LVL2)                                                  //
         // ============================================================================== //
         // ============================================================================== //
         // MIT License                                                                    //
@@ -344,10 +344,12 @@
           sconditions=%trim(sconditions)+' '+%trim(p_TOK4)+' , ';
         endif;
         if p_TOK5<>'';
-          sconditions=%trim(sconditions)+' '+%trim(p_TOK5);
+          sconditions=%trim(sconditions)+' '+%trim(p_TOK5)+' , ';
         endif;
         sconditions=%scanrpl(cQuote : cDoubleQuote : %trim(sconditions));
-
+        sconditions=%trim(sconditions)+' Params: MODE('+%trim(p_MODE)+')';
+        sconditions=%trim(sconditions)+' CASE('+%trim(p_CASE)+')';
+        sconditions=%trim(sconditions)+' REGEXP('+%trim(p_REGEX)+')';
         // Expression and comment filtering
         if vCase='I' and useRegex=*off;
           expr ='UPPER(SRCDTA)';

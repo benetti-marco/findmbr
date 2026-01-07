@@ -1,7 +1,7 @@
 **FREE
         // ============================================================================== //
         // PGM for command FINDMBR -  IBM i source-member search utility                  //
-        // Compile with: CRTBNDRPG PGM(MYLIB/FINDMBR) SRCFILE(MYLIB/QRPGLESRC)            // 
+        // Compile with: CRTBNDRPG PGM(MYLIB/FINDMBR) SRCFILE(MYLIB/QRPGLESRC)            //
         // ============================================================================== //
         // ============================================================================== //
         // MIT License                                                                    //
@@ -121,37 +121,63 @@
 
 
         // Derive behavior from input parameters
-        if %trim(p_BATCH)='*YES';
-            sFile='';
-          // Validate requested files/libraries before queuing the batch
-            for f = 1 to p_file.p_filecount;
-              i1=20*(f-1)+1;
-              FileEntry=%subst(p_file.p_filestr:i1:20);
-              if %trim(FileEntry)<>'';
-                  if FileEntry.File<>'*SRCPF';
-                    cmd = 'CHKOBJ OBJ(' + %trim(FileEntry.Lib) + '/' +
-                          %trim(FileEntry.File) + ') OBJTYPE(*FILE)';
-                    monitor;
-                      QCMDEXC(cmd:%len(%trimr(cmd)));
-                    on-error;
-                      FailWith('Missing file: ' + %trim(FileEntry.Lib) + '/' +
-                        %trim(FileEntry.File));
-                      return;
-                    endmon;
-                  else;
-                    cmd = 'CHKOBJ OBJ(' + %trim(FileEntry.Lib) +
-                          ') OBJTYPE(*LIB)';
-                    monitor;
-                      QCMDEXC(cmd:%len(%trimr(cmd)));
-                    on-error;
-                      FailWith('Invalid library: ' + %trim(FileEntry.Lib));
-                      return;
-                    endmon;
-                  endif;
-                  sFile=sFile+%trim(%upper(FileEntry.Lib))+'/'+
-                    %trim(%upper(FileEntry.File))+' ';
+
+        sFile='';
+        // Validate requested files/libraries before queuing the batch
+        for f = 1 to p_file.p_filecount;
+          i1=20*(f-1)+1;
+          FileEntry=%subst(p_file.p_filestr:i1:20);
+          if %trim(FileEntry)<>'';
+              if FileEntry.File<>'*SRCPF';
+                cmd = 'CHKOBJ OBJ(' + %trim(FileEntry.Lib) + '/' +
+                      %trim(FileEntry.File) + ') OBJTYPE(*FILE)';
+                monitor;
+                  QCMDEXC(cmd:%len(%trimr(cmd)));
+                on-error;
+                  FailWith('Missing file: ' + %trim(FileEntry.Lib) + '/' +
+                    %trim(FileEntry.File));
+                  return;
+                endmon;
+              else;
+                cmd = 'CHKOBJ OBJ(' + %trim(FileEntry.Lib) +
+                      ') OBJTYPE(*LIB)';
+                monitor;
+                  QCMDEXC(cmd:%len(%trimr(cmd)));
+                on-error;
+                  FailWith('Invalid library: ' + %trim(FileEntry.Lib));
+                  return;
+                endmon;
               endif;
-            endfor;
+              sFile=sFile+%trim(%upper(FileEntry.Lib))+'/'+
+                %trim(%upper(FileEntry.File))+' ';
+          endif;
+        endfor;
+
+        if p_EXITPGM<>'';
+          p_EXITPGM=%upper(p_EXITPGM);
+          // Ensure the exit program exists
+          cmd = 'CHKOBJ OBJ(FINDMBR_' + %trim(p_EXITPGM) +
+                ') OBJTYPE(*PGM)';
+          monitor;
+            QCMDEXC(cmd:%len(%trimr(cmd)));
+          on-error;
+            // Clear message and return
+                  FailWith('Missing exit program: '+
+                    'FINDMBR_' + %trim(p_EXITPGM));
+            return;
+          endmon;
+        endif;
+        
+        // Ensure the working library exists
+        cmd = 'CHKOBJ OBJ(' + %trim(p_WRKLIB) + ') OBJTYPE(*LIB)';
+        monitor;
+          QCMDEXC(cmd:%len(%trimr(cmd)));
+        on-error;
+          FailWith('Invalid library: ' + %trim(p_WRKLIB));
+          return;
+        endmon;
+
+        if %trim(p_BATCH)='*YES';
 
             Jobqnam=%subst(p_Jobq:01:10);
             Jobqlib=%subst(p_Jobq:11:10);
@@ -169,15 +195,6 @@
                 return;
               endmon;
             endif;
-
-            // Ensure the working library exists
-            cmd = 'CHKOBJ OBJ(' + %trim(p_WRKLIB) + ') OBJTYPE(*LIB)';
-            monitor;
-              QCMDEXC(cmd:%len(%trimr(cmd)));
-            on-error;
-              FailWith('Invalid library: ' + %trim(p_WRKLIB));
-              return;
-            endmon;
 
             cmd='';
             // Build the SBMJOB command by expanding placeholders
