@@ -67,6 +67,7 @@ Add a new action with a command like this:
 
 You will get a prompt window like this:
 
+<img width="700" height="920" alt="FINDMBR_prompt" src="https://github.com/user-attachments/assets/813ded0d-460b-459e-9444-b620a6a62935" />
 
 
 ## License
