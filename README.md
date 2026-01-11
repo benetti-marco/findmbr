@@ -22,8 +22,8 @@ FINDMBR is an IBM i command that searches source members across one or more sour
 - **MODE:** *OR (any token), *ANDLINE (all tokens on same line), *ANDMBR (all tokens somewhere in member). Default: *\*ANDMBR*.
 - **CASE:** *INSENSITIVE (default) or *SENSITIVE. Default: *\*INSENSITIVE*.
 - **REGEXP:** *NO (default) or *YES to use REGEXP_LIKE (POSIX extended syntax). Default *\*NO*.
-- **EXITPGM:** Optional single-character suffix to call FINDMBR<suffix> after search.
-- **CSVFOLDER:** IFS folder for output or *USRHOME (for /home/<user>). Default *\*USRHOME*.
+- **EXITPGM:** Optional single-character suffix to call FINDMBR_x to exclude source files from the search.
+- **CSVFOLDER:** IFS folder for output or *USRHOME (for /home/*user*). Default *\*USRHOME*.
 - **CSVFILE:** File name or *AUTO (timestamped, e.g. `findmbr_2026-01-04-16.02.39.688000.csv`). Default *\*AUTO*.
 - **APPEND:** *NO (replace) or *YES (append) for CSV. Default *\*NO*.
 - **WRKLIB:** Work library for temp tables. Default *QTEMP*.
@@ -33,31 +33,43 @@ FINDMBR is an IBM i command that searches source members across one or more sour
 
 ## Build/Install
 ### Create the command:
-`CRTCMD CMD(<lib>/FINDMBR) PGM(<lib>/FINDMBR) SRCFILE(<lib>/QCMDSRC)`
+`CRTCMD CMD(library/FINDMBR) PGM(library/FINDMBR) SRCFILE(library/QCMDSRC)`
 
 ### Compile the interactive driver:
-`CRTSQLRPGI OBJ(<lib>/FINDMBR) SRCFILE(<lib>/QRPGLESRC) SRCMBR(FINDMBR)`
+`CRTSQLRPGI OBJ(library/FINDMBR) SRCFILE(library/QRPGLESRC) SRCMBR(FINDMBR)`
 
 ### Compile the worker:
-`CRTSQLRPGI OBJ(<lib>/FINDMBR0) SRCFILE(<lib>/QRPGLESRC) SRCMBR(FINDMBR0) RPGPPOPT(*LVL2)`
+`CRTSQLRPGI OBJ(library/FINDMBR0) SRCFILE(library/QRPGLESRC) SRCMBR(FINDMBR0) RPGPPOPT(*LVL2)`
 
 ## Usage Examples
 - Search two files for a single token with CSV to user home:  
-  `FINDMBR FILE((QRPGLESRC MYLIB) (QCMDSRC MYLIB)) TOK1('customer')`
+  `FINDMBR FILE(MYLIB/QRPGLESRC MYLIB/QCMDSRC) TOK1('customer')`
 
 - Case-sensitive AND-at-line search with CSV to specific folder:  
-  `FINDMBR FILE((QRPGLESRC DEVLIB)) TOK1('select') TOK2('where') MODE(*ANDLINE) CASE(*SENSITIVE) CSVFOLDER(/csv)`
+  `FINDMBR FILE(DEVLIB/QRPGLESRC) TOK1('select') TOK2('where') MODE(*ANDLINE) CASE(*SENSITIVE) CSVFOLDER(/csv)`
 
 - Batch submit to a specific job queue:
-  `FINDMBR FILE((QRPGLESRC DEVLIB)) TOK1('TODO') BCHJOB(*YES) JOBQ(QBATCH/QGPL)`  
+  `FINDMBR FILE(DEVLIB/QRPGLESRC) TOK1('TODO') BCHJOB(*YES) JOBQ(QGPL/QBATCH)`  
 
 - Search all source files in a library using regex.  
-  `FINDMBR FILE((*SRCPF MYLIB) (QCMDSRC MYLIB)) TOK1('customer|client') TOK2('address|city') `  
+  `FINDMBR FILE(MYLIB/*SRCPF MYLIB/QCMDSRC) TOK1('customer|client') TOK2('address|city') `  
   **Regex examples:** *^foo* (line starts with foo), *bar$* (ends with bar), *c.t* (c then any char then t), *foo|bar* (foo or bar), *[A-Z]{2}[0-9]+* (two letters followed by digits).
 
 ## Output
 - CSV: Written to CSVFOLDER/CSVFILE (UTF-8, ";" delimiter, CRLF).
 - Spool: Optional SQL/log output when LOG(*YES).
 
+## Use with Code for i extension
+
+Add a new action with a command like this:
+
+`FINDMBR FILE(${FILE|Libraries/Files|LIB1/*SRCPF LIB2/*SRCPF LIB3/*SRCPF LIB4/*SRCPF LIB5/*SRCPF}) TOK1(${TOK1|First token to search|}) TOK2(${TOK2|Second token to search|}) TOK3(${TOK3|Third token to search|}) TOK4(${TOK4|Fourth token to search|}) TOK5(${TOK5|Fifth token to search|}) MODE(${MODE|Search mode|*ANDMBR}) CASE(${CASE|Case|*INSENSITIVE}) REGEXP(${REGEXP|Use regular expressions|*NO}) CSVFOLDER(${CSVFOLDER|Csv folder|*USRHOME}) CSVFILE(${CSVFILE|Csv file name|*AUTO}) BCHJOB(${BCHJOB|Execute in batch|*YES}) JOBQ(${JOBQ|Job queue|QGPL/QBATCH})`
+
+You will get a prompt window like this:
+
+
+
 ## License
 MIT License.
+Thanks to Scott Klement for the IFSIO_H and ERRNO_H copybooks. 
+The IFSIO_H and ERRNO_H copybooks are copyright © Scott Klement and are distributed under the BSD 2-Clause license.

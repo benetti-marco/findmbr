@@ -307,6 +307,7 @@
                 iFile=*on;
               endif;
               sqlcmd=%scanrpl('&where':swhere:sqlcmd);
+              sqlcmd=%scanrpl('&file':FileEntry.File:sqlcmd);
               sqlcmd=%scanrpl('&listfile':srcpflst:sqlcmd);
               sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
 
