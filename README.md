@@ -6,6 +6,7 @@ FINDMBR is an IBM i command that searches source members across one or more sour
 - **Command definition:** FINDMBR in QCMDSRC (creates command FINDMBR).
 - **Interactive driver:** FINDMBR.RPGLE (runs search in the caller job).
 - **Batch/worker program:** FINDMBR0.SQLRPGLE (SQL-based search and CSV export).
+- **Exit program:** FINDMBR_X.RPGLE (Example of an exit program for excluding source files from the search).
 
 ## Key Features
 - Search up to 5 tokens with AND/OR semantics at line or member level.
@@ -36,7 +37,7 @@ FINDMBR is an IBM i command that searches source members across one or more sour
 `CRTCMD CMD(library/FINDMBR) PGM(library/FINDMBR) SRCFILE(library/QCMDSRC)`
 
 ### Compile the interactive driver:
-`CRTSQLRPGI OBJ(library/FINDMBR) SRCFILE(library/QRPGLESRC) SRCMBR(FINDMBR)`
+`CRTBNDRPG PGM(MYLIB/FINDMBR) SRCFILE(MYLIB/QRPGLESRC)`
 
 ### Compile the worker:
 `CRTSQLRPGI OBJ(library/FINDMBR0) SRCFILE(library/QRPGLESRC) SRCMBR(FINDMBR0) RPGPPOPT(*LVL2)`
