@@ -90,6 +90,7 @@ You will get a prompt window like this:
 
 ## License
 
-**MIT License**.  
+findmbr is released under the **MIT License**.  
+
 Thanks to Scott Klement for the IFSIO_H and ERRNO_H copybooks.  
 The IFSIO_H and ERRNO_H copybooks are copyright © Scott Klement and are distributed under the BSD 2-Clause license.

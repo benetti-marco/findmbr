@@ -59,3 +59,4 @@ CALL PGM(UT_FINDMBR/TEST_RUN)
 - `CMPCSV` receives the script directory from `QUTISRC/test_run.clle` (`&SCRIPTDIR`).
 - Ensure `bash` exists at `/QOpenSys/pkgs/bin/bash` or adjust `shellCmd` in `QUTISRC/cmpcsv.rpgle`.
 - FINDMBR and FINDMBR0 must already be compiled and in library list.
+- The end-to-end test suite requires UNIXCMD by Scott Klement (<https://www.scottklement.com/unixcmd/>), released under the BSD 2-Clause License.
