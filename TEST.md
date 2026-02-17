@@ -32,7 +32,7 @@ This project includes a minimal end-to-end test setup for FINDMBR that:
     - ~/findmbr-tests/setup/mbr4.txt  
     - ~/findmbr-tests/setup/mbr5.txt  
 
-3) Copy compare script to IFS and make it executable:
+3) Copy compare script compare_csv.sh to IFS and make it executable:
 
     ~/findmbr-tests/bin/compare_csv.sh  
     `chmod +x ~/findmbr-tests/bin/compare_csv.sh`  
