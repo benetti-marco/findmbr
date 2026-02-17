@@ -1,0 +1,107 @@
+/* ============================================================================== */
+/* PGM for command FINDMBR -  IBM i source-member search utility                  */
+/* Compile with: CRTBNDRPG PGM(MYLIB/FINDMBR_X) SRCFILE(MYLIB/QRPGLESRC)          */
+/* ============================================================================== */
+/* ============================================================================== */
+/* MIT License                                                                    */
+/*                                                                                */
+/* Copyright (c) 2025-2026 Marco Benetti                                          */
+/*                                                                                */
+/* Permission is hereby granted, free of charge, to any person obtaining a copy   */
+/* of this software and associated documentation files (the "Software"), to deal  */
+/* in the Software without restriction, including without limitation the rights   */
+/* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell      */
+/* copies of the Software, and to permit persons to whom the Software is          */
+/* furnished to do so, subject to the following conditions:                       */
+/*                                                                                */
+/* The above copyright notice and this permission notice shall be included in all */
+/* copies or substantial portions of the Software.                                */
+/*                                                                                */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR     */
+/* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,       */
+/* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE    */
+/* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER         */
+/* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,  */
+/* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE  */
+/* SOFTWARE.                                                                      */
+/* ============================================================================== */
+PGM
+
+DCL VAR(&LIB) TYPE(*CHAR) LEN(10) VALUE('UT_FINDMBR')
+DCL VAR(&SRCFILE) TYPE(*CHAR) LEN(10) VALUE('QTESTSRC')
+DCL VAR(&BASEDIR) TYPE(*CHAR) LEN(200) VALUE('~/findmbr-tests')
+DCL VAR(&FIXTUREDIR) TYPE(*CHAR) LEN(200) VALUE('~/findmbr/tests/ibmi/findmbr/fixtures')
+DCL VAR(&SETUPDIR) TYPE(*CHAR) LEN(200)
+DCL VAR(&CMD) TYPE(*CHAR) LEN(5000)
+DCL VAR(&STMF) TYPE(*CHAR) LEN(200)
+DCL VAR(&MBR) TYPE(*CHAR) LEN(200)
+
+/* Build paths based on BASEDIR */
+CHGVAR VAR(&SETUPDIR) VALUE(&BASEDIR *TCAT '/setup')
+
+/* Rebuild test library */
+DLTF FILE(&LIB/&SRCFILE)
+MONMSG CPF0000
+CRTSRCPF FILE(&LIB/&SRCFILE) RCDLEN(112)
+
+ADDPFM FILE(&LIB/&SRCFILE) MBR(MBR1) SRCTYPE(RPGLE) TEXT('Member 1')
+ADDPFM FILE(&LIB/&SRCFILE) MBR(MBR2) SRCTYPE(RPGLE) TEXT('Member 2')
+ADDPFM FILE(&LIB/&SRCFILE) MBR(MBR3) SRCTYPE(RPGLE) TEXT('Member 3')
+ADDPFM FILE(&LIB/&SRCFILE) MBR(MBR4) SRCTYPE(RPGLE) TEXT('Member 4')
+ADDPFM FILE(&LIB/&SRCFILE) MBR(MBR5) SRCTYPE(RPGLE) TEXT('Member 5')
+
+/* Build IFS source files */
+CHGVAR VAR(&CMD) VALUE('mkdir -p ' *CAT &SETUPDIR)
+QSH CMD(&CMD)
+
+/* Copy fixture files to setup directory */
+CHGVAR VAR(&CMD) VALUE('cp ' *CAT &FIXTUREDIR *TCAT '/mbr1.txt ' *CAT &SETUPDIR *TCAT '/mbr1.txt')
+QSH CMD(&CMD)
+CHGVAR VAR(&CMD) VALUE('cp ' *CAT &FIXTUREDIR *TCAT '/mbr2.txt ' *CAT &SETUPDIR *TCAT '/mbr2.txt')
+QSH CMD(&CMD)
+CHGVAR VAR(&CMD) VALUE('cp ' *CAT &FIXTUREDIR *TCAT '/mbr3.txt ' *CAT &SETUPDIR *TCAT '/mbr3.txt')
+QSH CMD(&CMD)
+CHGVAR VAR(&CMD) VALUE('cp ' *CAT &FIXTUREDIR *TCAT '/mbr4.txt ' *CAT &SETUPDIR *TCAT '/mbr4.txt')
+QSH CMD(&CMD)
+CHGVAR VAR(&CMD) VALUE('cp ' *CAT &FIXTUREDIR *TCAT '/mbr5.txt ' *CAT &SETUPDIR *TCAT '/mbr5.txt')
+QSH CMD(&CMD)
+
+/* Set CCSID to UTF-8 (1208) for all fixture files */
+CHGVAR VAR(&CMD) VALUE('setccsid 1208 ' *CAT &SETUPDIR *TCAT '/mbr1.txt')
+QSH CMD(&CMD)
+CHGVAR VAR(&CMD) VALUE('setccsid 1208 ' *CAT &SETUPDIR *TCAT '/mbr2.txt')
+QSH CMD(&CMD)
+CHGVAR VAR(&CMD) VALUE('setccsid 1208 ' *CAT &SETUPDIR *TCAT '/mbr3.txt')
+QSH CMD(&CMD)
+CHGVAR VAR(&CMD) VALUE('setccsid 1208 ' *CAT &SETUPDIR *TCAT '/mbr4.txt')
+QSH CMD(&CMD)
+CHGVAR VAR(&CMD) VALUE('setccsid 1208 ' *CAT &SETUPDIR *TCAT '/mbr5.txt')
+QSH CMD(&CMD)
+
+/* Populate members via CPYFRMSTMF */
+CHGVAR VAR(&STMF) VALUE(&SETUPDIR *TCAT '/mbr1.txt')
+CHGVAR VAR(&MBR) VALUE('/QSYS.LIB/' *CAT &LIB *TCAT '.LIB/' *CAT &SRCFILE *TCAT '.FILE/MBR1.MBR')
+
+CPYFRMSTMF FROMSTMF(&STMF) TOMBR(&MBR) MBROPT(*REPLACE) STMFCCSID(*STMF) DBFCCSID(*FILE)
+
+CHGVAR VAR(&STMF) VALUE(&SETUPDIR *TCAT '/mbr2.txt')
+CHGVAR VAR(&MBR) VALUE('/QSYS.LIB/' *CAT &LIB *TCAT '.LIB/' *CAT &SRCFILE *TCAT '.FILE/MBR2.MBR')
+
+CPYFRMSTMF FROMSTMF(&STMF) TOMBR(&MBR) MBROPT(*REPLACE) STMFCCSID(*STMF) DBFCCSID(*FILE)
+
+CHGVAR VAR(&STMF) VALUE(&SETUPDIR *TCAT '/mbr3.txt')
+CHGVAR VAR(&MBR) VALUE('/QSYS.LIB/' *CAT &LIB *TCAT '.LIB/' *CAT &SRCFILE *TCAT '.FILE/MBR3.MBR')
+
+CPYFRMSTMF FROMSTMF(&STMF) TOMBR(&MBR) MBROPT(*REPLACE) STMFCCSID(*STMF) DBFCCSID(*FILE)
+
+CHGVAR VAR(&STMF) VALUE(&SETUPDIR *TCAT '/mbr4.txt')
+CHGVAR VAR(&MBR) VALUE('/QSYS.LIB/' *CAT &LIB *TCAT '.LIB/' *CAT &SRCFILE *TCAT '.FILE/MBR4.MBR')
+
+CPYFRMSTMF FROMSTMF(&STMF) TOMBR(&MBR) MBROPT(*REPLACE) STMFCCSID(*STMF) DBFCCSID(*FILE)
+
+CHGVAR VAR(&STMF) VALUE(&SETUPDIR *TCAT '/mbr5.txt')
+CHGVAR VAR(&MBR) VALUE('/QSYS.LIB/' *CAT &LIB *TCAT '.LIB/' *CAT &SRCFILE *TCAT '.FILE/MBR5.MBR')
+
+CPYFRMSTMF FROMSTMF(&STMF) TOMBR(&MBR) MBROPT(*REPLACE) STMFCCSID(*STMF) DBFCCSID(*FILE)
+
+ENDPGM

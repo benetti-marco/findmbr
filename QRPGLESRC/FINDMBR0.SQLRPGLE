@@ -231,6 +231,9 @@
               csvPath=csvPath+'/';
             endif;
         endif;
+        if %subst(csvPath:1:1)='~';
+          eval csvPath=%scanrpl('~':'/home/'+%trim(usr):csvPath);
+        endif;
         csvFolder=csvPath;
         if %trim(p_CSVFILE)='*AUTO';
            csvPath=csvPath+'findmbr_'+%CHAR(YTIMESTAMP)+'.csv';

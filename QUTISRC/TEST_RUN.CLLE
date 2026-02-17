@@ -1,0 +1,95 @@
+/* ============================================================================== */
+/* PGM for command FINDMBR -  IBM i source-member search utility                  */
+/* Compile with: CRTBNDRPG PGM(MYLIB/FINDMBR_X) SRCFILE(MYLIB/QRPGLESRC)          */
+/* ============================================================================== */
+/* ============================================================================== */
+/* MIT License                                                                    */
+/*                                                                                */
+/* Copyright (c) 2025-2026 Marco Benetti                                          */
+/*                                                                                */
+/* Permission is hereby granted, free of charge, to any person obtaining a copy   */
+/* of this software and associated documentation files (the "Software"), to deal  */
+/* in the Software without restriction, including without limitation the rights   */
+/* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell      */
+/* copies of the Software, and to permit persons to whom the Software is          */
+/* furnished to do so, subject to the following conditions:                       */
+/*                                                                                */
+/* The above copyright notice and this permission notice shall be included in all */
+/* copies or substantial portions of the Software.                                */
+/*                                                                                */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR     */
+/* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,       */
+/* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE    */
+/* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER         */
+/* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,  */
+/* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE  */
+/* SOFTWARE.                                                                      */
+/* ============================================================================== */
+PGM
+
+DCL VAR(&BASEDIR) TYPE(*CHAR) LEN(200) VALUE('~/findmbr-tests')
+DCL VAR(&EXPDIR) TYPE(*CHAR) LEN(240)
+DCL VAR(&OUTDIR) TYPE(*CHAR) LEN(240)
+DCL VAR(&CMD) TYPE(*CHAR) LEN(5000)
+DCL VAR(&LIB) TYPE(*CHAR) LEN(10) VALUE('UT_FINDMBR')
+DCL VAR(&SRCFILE) TYPE(*CHAR) LEN(10) VALUE('QTESTSRC')
+DCL VAR(&SCRIPTDIR) TYPE(*CHAR) LEN(240)
+DCL VAR(&LEFT) TYPE(*CHAR) LEN(240)
+DCL VAR(&RIGHT) TYPE(*CHAR) LEN(240)
+DCL VAR(&MSG) TYPE(*CHAR) LEN(100)
+DCL VAR(&IERR) TYPE(*CHAR) LEN(1)
+
+/* Build paths based on BASEDIR */
+CHGVAR VAR(&EXPDIR) VALUE(&BASEDIR *TCAT '/expected')
+CHGVAR VAR(&OUTDIR) VALUE(&BASEDIR *TCAT '/output')
+CHGVAR VAR(&SCRIPTDIR) VALUE(&BASEDIR *TCAT '/bin')
+
+/* Test 1: *ANDMBR, insensitive, 2 tokens */
+FINDMBR FILE(&LIB/&SRCFILE) TOK1('FOO') TOK2('BAR') MODE(*ANDMBR) +
+  CASE(*INSENSITIVE) REGEXP(*NO) CSVFOLDER(&OUTDIR) +
+  CSVFILE('t1.csv') APPEND(*NO) WRKLIB(QTEMP) LOG(*NO) BCHJOB(*NO)
+CHGVAR VAR(&LEFT) VALUE(&EXPDIR *TCAT '/t1.csv')
+CHGVAR VAR(&RIGHT) VALUE(&OUTDIR *TCAT '/t1.csv')
+CALL PGM(&LIB/CMPCSV) PARM(&LEFT &RIGHT &SCRIPTDIR &MSG &IERR)
+IF   COND(&IERR='1') THEN(DO)
+  SNDPGMMSG MSGID(CPF9898) MSGF(QCPFMSG) MSGDTA('Test 1 failed (t1.csv) ' *CAT &MSG) +
+            MSGTYPE(*ESCAPE)
+ENDDO
+
+/* Test 2: *ANDLINE, insensitive */
+FINDMBR FILE(&LIB/&SRCFILE) TOK1('ALPHA') TOK2('BETA') MODE(*ANDLINE) +
+  CASE(*INSENSITIVE) REGEXP(*NO) CSVFOLDER(&OUTDIR) +
+  CSVFILE('t2.csv') APPEND(*NO) WRKLIB(QTEMP) LOG(*NO) BCHJOB(*NO)
+CHGVAR VAR(&LEFT) VALUE(&EXPDIR *TCAT '/t2.csv')
+CHGVAR VAR(&RIGHT) VALUE(&OUTDIR *TCAT '/t2.csv')
+CALL PGM(&LIB/CMPCSV) PARM(&LEFT &RIGHT &SCRIPTDIR &MSG &IERR)
+IF   COND(&IERR='1') THEN(DO)
+  SNDPGMMSG MSGID(CPF9898) MSGF(QCPFMSG) MSGDTA('Test 2 failed (t2.csv) ' *CAT &MSG) +
+            MSGTYPE(*ESCAPE)
+ENDDO
+
+/* Test 3: case sensitive */
+FINDMBR FILE(&LIB/&SRCFILE) TOK1('CaseTest') +
+  CASE(*SENSITIVE) REGEXP(*NO) CSVFOLDER(&OUTDIR) +
+  CSVFILE('t3.csv') APPEND(*NO) WRKLIB(QTEMP) LOG(*NO) BCHJOB(*NO)
+CHGVAR VAR(&LEFT) VALUE(&EXPDIR *TCAT '/t3.csv')
+CHGVAR VAR(&RIGHT) VALUE(&OUTDIR *TCAT '/t3.csv')
+CALL PGM(&LIB/CMPCSV) PARM(&LEFT &RIGHT &SCRIPTDIR &MSG &IERR)
+IF   COND(&IERR='1') THEN(DO)
+  SNDPGMMSG MSGID(CPF9898) MSGF(QCPFMSG) MSGDTA('Test 3 failed (t3.csv) ' *CAT &MSG) +
+            MSGTYPE(*ESCAPE)
+ENDDO
+
+/* Test 4: REGEXP */
+FINDMBR FILE(&LIB/&SRCFILE) TOK1('FOO[0-9]{2}') +
+  CASE(*INSENSITIVE) REGEXP(*YES) CSVFOLDER(&OUTDIR) +
+  CSVFILE('t4.csv') APPEND(*NO) WRKLIB(QTEMP) LOG(*NO) BCHJOB(*NO)
+CHGVAR VAR(&LEFT) VALUE(&EXPDIR *TCAT '/t4.csv')
+CHGVAR VAR(&RIGHT) VALUE(&OUTDIR *TCAT '/t4.csv')
+CALL PGM(&LIB/CMPCSV) PARM(&LEFT &RIGHT &SCRIPTDIR &MSG &IERR)
+IF   COND(&IERR='1') THEN(DO)
+  SNDPGMMSG MSGID(CPF9898) MSGF(QCPFMSG) MSGDTA('Test 4 failed (t4.csv) ' *CAT &MSG) +
+            MSGTYPE(*ESCAPE)
+ENDDO
+
+ENDPGM

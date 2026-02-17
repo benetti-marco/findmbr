@@ -1,0 +1,3 @@
+00100 ALPHA BETA on same line
+00200 ALPHA alone
+00300 BETA alone

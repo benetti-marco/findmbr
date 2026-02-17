@@ -1,0 +1,3 @@
+00100 FOO is here
+00200 some text
+00300 bar appears

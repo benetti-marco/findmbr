@@ -1,0 +1,3 @@
+"Library";"Src File";"Member";"Description";"Src Type";"Seq.Nr";"Row"
+"";"";"";"Conditions";"";"000000";"Libraries/Files: UT_FINDMBR/QTESTSRC, Tokens: CaseTest , Params: MODE(*ANDMBR) CASE(*SENSITIVE) REGEXP(*NO)"
+"UT_FINDMBR";"QTESTSRC";"MBR4";"Member 4";"RPGLE";"000100";"00100 CaseTest                                                                                      "

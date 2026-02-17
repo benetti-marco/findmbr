@@ -71,6 +71,11 @@ FINDMBR is an IBM i command that searches source members across one or more sour
 - CSV: Written to CSVFOLDER/CSVFILE (UTF-8, ";" delimiter, CRLF).
 - Spool: Optional SQL/log output when LOG(*YES).
 
+## Testing
+
+An IBM i end-to-end test harness is included in this repository.
+See **[TEST.md](TEST.md)** for the updated layout (`QUTISRC`, `tests/expected`, `tests/fixtures`, `tests/bin`) and full setup/compile/run steps.
+
 ## Use with Code for i extension
 
 Add a new action with a command like this:

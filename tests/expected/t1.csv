@@ -1,0 +1,6 @@
+"Library";"Src File";"Member";"Description";"Src Type";"Seq.Nr";"Row"
+"";"";"";"Conditions";"";"000000";"Libraries/Files: UT_FINDMBR/QTESTSRC, Tokens: FOO , BAR , Params: MODE(*ANDMBR) CASE(*INSENSITIVE) REGEXP(*NO)"
+"UT_FINDMBR";"QTESTSRC";"MBR1";"Member 1";"RPGLE";"000100";"00100 FOO is here                                                                                   "
+"UT_FINDMBR";"QTESTSRC";"MBR1";"Member 1";"RPGLE";"000300";"00300 bar appears                                                                                   "
+"UT_FINDMBR";"QTESTSRC";"MBR2";"Member 2";"RPGLE";"000100";"00100 FOO only                                                                                      "
+"UT_FINDMBR";"QTESTSRC";"MBR2";"Member 2";"RPGLE";"000200";"00200 no bar                                                                                        "
