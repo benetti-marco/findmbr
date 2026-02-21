@@ -40,6 +40,7 @@
         end-pi;
 
         dcl-s cmd char(5000);
+        dcl-s vcmd varchar(5000);
         dcl-s cmde char(500);
         dcl-ds record len(1000) end-ds;
         dcl-ds outrec len(132) end-ds;
@@ -84,15 +85,16 @@
         endif;
 
         scriptPath = %trimr(scriptDir) + '/compare_csv.sh';
-
-        cmd = 'PATH=/QOpenSys/pkgs/bin:$PATH && sh && '+scriptPath
-            +' '+Left+' '+Right;
+        vcmd=scriptPath+' '+Left+' '+Right;
+        vcmd = %scanrpl('''':'''\''''':vcmd);
+        cmd = 'PATH=/QOpenSys/pkgs/bin:$PATH '+
+            'exec /QOpenSys/pkgs/bin/bash -c '''+vcmd+'''';
         open UNIX;
-        outrec = 'PATH=/QOpenSys/pkgs/bin:$PATH && sh && '+scriptPath;
+        outrec = 'PATH=/QOpenSys/pkgs/bin:$PATH ';
         write QSYSPRT outrec;
-        outrec = Left;
+        outrec = 'exec /QOpenSys/pkgs/bin/bash -c ''';
         write QSYSPRT outrec;
-        outrec = Right;
+        outrec = vcmd+'''';
         write QSYSPRT outrec;
 
         read UNIX record;
