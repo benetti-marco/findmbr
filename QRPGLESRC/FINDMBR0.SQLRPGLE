@@ -105,6 +105,7 @@
         dcl-s rxFlag   char(1) inz('i');
 
         dcl-s csvPath  varchar(1024) inz('');
+        dcl-s csvSummaryPath  varchar(1024) inz('');
         dcl-s csvFolder  varchar(1024) inz('');
         dcl-s mbrOpt   char(10)      inz('*REPLACE');
         dcl-s usr      char(10)      inz('');
@@ -164,6 +165,7 @@
       /copy QRPGLEINC,IFSIO_H
       /copy QRPGLEINC,ERRNO_H
         dcl-s CMDARR    Char(100)  DIM(02) CTDATA PERRCD(1);
+        dcl-s CMDARR2   Char(100)  DIM(02) CTDATA PERRCD(1);
         dcl-s SSQL1     Char(100)  DIM(15) CTDATA PERRCD(1);
         dcl-s SSQL2     Char(100)  DIM(15) CTDATA PERRCD(1);
         dcl-s SSQL3     Char(100)  DIM(15) CTDATA PERRCD(1);
@@ -182,6 +184,14 @@
                 CloSqlCsr = *ENDACTGRP;
 
         start_time=%timestamp();
+
+        // Validate that at least TOK1 is provided
+        if %trim(p_TOK1) = '';
+          STR132='Error: At least one search token (TOK1) is required.';
+          EXSR PRTROW;
+          *inlr = *on;
+          return;
+        endif;
 
         // Derive options from input parameters
         if %trim(p_REGEX)='*YES';
@@ -240,6 +250,9 @@
         else;
            csvPath =csvPath+%trim(p_CSVFILE);
         endif;
+
+        // Build summary CSV path
+        csvSummaryPath = csvFolder + 'findmbr_' + %CHAR(YTIMESTAMP) + '_summary.csv';
 
         if %trim(p_APPEND)='*YES';
            mbrOpt='*ADD';
@@ -466,11 +479,23 @@
         sqlcmd='close cursor';
         exsr PRTERR;
 
-        // Export CSV with UTF-8 BOM
+        // Create summary table with distinct members that have results
+        sqlcmd = 'create or replace table &wrklib/SUMMARY as (' +     
+          'SELECT DISTINCT CASE WHEN srcseq > ''000000'' THEN ''000000'' ELSE '+
+          'srcseq END as srcseq, lib, srcfile, mbr, mbrdesc, srctype, '+
+          'CASE WHEN srcseq > ''000000'' THEN '''' ELSE srcdta END AS srcdta ' +
+          'FROM &wrklib/RESULTS ' +
+          'ORDER BY srcseq, lib, srcfile, mbr) ' +
+          'WITH DATA ON REPLACE DELETE ROWS';             
+        sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+        exec sql execute immediate :sqlcmd;
+        exsr PRTERR;
+
+        // Export detail CSV with UTF-8 BOM
         // If not appending, create file with BOM first, then append CSV data
         if %trim(p_APPEND)<>'*YES';
            // Create file with UTF-8 BOM (EF BB BF) using QSYS2.IFS_WRITE_BINARY
-           sqlcmd = 'CALL QSYS2.IFS_WRITE_BINARY(''&path'', X''EFBBBF'', ''OVERWRITE=YES'')';
+           sqlcmd = %trim(CMDARR2(1))+' '+%trim(CMDARR2(2));
            sqlcmd=%scanrpl('&path':csvPath:sqlcmd);
            exec sql execute immediate :sqlcmd;
            exsr PRTERR;
@@ -483,6 +508,25 @@
         cmd = %scanrpl('&path':csvPath:cmd);
         cmd=%scanrpl('*REPLACE':mbrOpt:cmd);
 
+        QCMDEXC(cmd:%len(%trimr(cmd)));
+
+        // Export summary CSV
+        // If not appending, create file with BOM first, then append CSV data
+        if %trim(p_APPEND)<>'*YES';
+           // Create file with UTF-8 BOM (EF BB BF) using QSYS2.IFS_WRITE_BINARY
+           sqlcmd = %trim(CMDARR2(1))+' '+%trim(CMDARR2(2));
+           sqlcmd=%scanrpl('&path':csvSummaryPath:sqlcmd);
+           exec sql execute immediate :sqlcmd;
+           exsr PRTERR;
+           // Use ADD mode to append CSV data to BOM file
+           mbrOpt='*ADD';
+        endif;
+
+        cmd = %trim(CMDARR(1))+' '+%trim(CMDARR(2));
+        cmd=%scanrpl('&wrklib':%trim(p_WRKLIB):cmd);
+        cmd = %scanrpl('&path':csvSummaryPath:cmd);
+        cmd = %scanrpl('RESULTS': 'SUMMARY': cmd);
+        cmd=%scanrpl('*REPLACE':mbrOpt:cmd);
         QCMDEXC(cmd:%len(%trimr(cmd)));
 
         time_taken = %DIFF (%timestamp() : start_time : *MSECONDS);
@@ -795,6 +839,9 @@
 **CTDATA CMDARR
 CPYTOIMPF FROMFILE(&wrklib/RESULTS) TOSTMF('&path') MBROPT(*REPLACE)
 STMFCCSID(1208) STMFAUT(*INDIR) RCDDLM(*CRLF) FLDDLM(';') ADDCOLNAM(*NONE)
+**CTDATA CMDARR2
+CALL QSYS2.IFS_WRITE_BINARY(PATH_NAME => '&path',
+LINE => BLOB(X'EFBBBF'), FILE_CCSID => 1208, OVERWRITE => 'REPLACE')
 **CTDATA SSQL1
 select lib, srcfile, mbr, mbrdesc, srctype from &wrklib/mbrlist order by lib, srcfile, mbr
 **CTDATA SSQL2
