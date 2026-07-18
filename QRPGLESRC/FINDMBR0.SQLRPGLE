@@ -466,10 +466,22 @@
         sqlcmd='close cursor';
         exsr PRTERR;
 
-        // Export CSV
+        // Export CSV with UTF-8 BOM
+        // If not appending, create file with BOM first, then append CSV data
+        if %trim(p_APPEND)<>'*YES';
+           // Create file with UTF-8 BOM (EF BB BF) using SQL BLOB function
+           sqlcmd = 'CALL SYSTOOLS.GENERATE_BLOB(CAST(X''EFBBBF'' AS BLOB(3)), ''&path'', ''OVERWRITE=YES'')';
+           sqlcmd=%scanrpl('&path':csvPath:sqlcmd);
+           exec sql execute immediate :sqlcmd;
+           exsr PRTERR;
+           // Use ADD mode to append CSV data to BOM file
+           mbrOpt='*ADD';
+        endif;
+
         cmd = %trim(CMDARR(1))+' '+%trim(CMDARR(2));
         cmd=%scanrpl('&wrklib':%trim(p_WRKLIB):cmd);
         cmd = %scanrpl('&path':csvPath:cmd);
+        cmd=%scanrpl('*REPLACE':mbrOpt:cmd);
 
         QCMDEXC(cmd:%len(%trimr(cmd)));
 
