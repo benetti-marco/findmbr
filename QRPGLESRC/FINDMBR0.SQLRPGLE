@@ -165,6 +165,7 @@
       /copy QRPGLEINC,IFSIO_H
       /copy QRPGLEINC,ERRNO_H
         dcl-s CMDARR    Char(100)  DIM(02) CTDATA PERRCD(1);
+        dcl-s CMDARR2   Char(100)  DIM(02) CTDATA PERRCD(1);
         dcl-s SSQL1     Char(100)  DIM(15) CTDATA PERRCD(1);
         dcl-s SSQL2     Char(100)  DIM(15) CTDATA PERRCD(1);
         dcl-s SSQL3     Char(100)  DIM(15) CTDATA PERRCD(1);
@@ -490,18 +491,42 @@
         exec sql execute immediate :sqlcmd;
         exsr PRTERR;
 
-        // Export detail CSV
+        // Export detail CSV with UTF-8 BOM
+        // If not appending, create file with BOM first, then append CSV data
+        if %trim(p_APPEND)<>'*YES';
+           // Create file with UTF-8 BOM (EF BB BF) using QSYS2.IFS_WRITE_BINARY
+           sqlcmd = %trim(CMDARR2(1))+' '+%trim(CMDARR2(2));
+           sqlcmd=%scanrpl('&path':csvPath:sqlcmd);
+           exec sql execute immediate :sqlcmd;
+           exsr PRTERR;
+           // Use ADD mode to append CSV data to BOM file
+           mbrOpt='*ADD';
+        endif;
+
         cmd = %trim(CMDARR(1))+' '+%trim(CMDARR(2));
         cmd=%scanrpl('&wrklib':%trim(p_WRKLIB):cmd);
         cmd = %scanrpl('&path':csvPath:cmd);
+        cmd=%scanrpl('*REPLACE':mbrOpt:cmd);
 
         QCMDEXC(cmd:%len(%trimr(cmd)));
 
         // Export summary CSV
+        // If not appending, create file with BOM first, then append CSV data
+        if %trim(p_APPEND)<>'*YES';
+           // Create file with UTF-8 BOM (EF BB BF) using QSYS2.IFS_WRITE_BINARY
+           sqlcmd = %trim(CMDARR2(1))+' '+%trim(CMDARR2(2));
+           sqlcmd=%scanrpl('&path':csvSummaryPath:sqlcmd);
+           exec sql execute immediate :sqlcmd;
+           exsr PRTERR;
+           // Use ADD mode to append CSV data to BOM file
+           mbrOpt='*ADD';
+        endif;
+
         cmd = %trim(CMDARR(1))+' '+%trim(CMDARR(2));
         cmd=%scanrpl('&wrklib':%trim(p_WRKLIB):cmd);
         cmd = %scanrpl('&path':csvSummaryPath:cmd);
         cmd = %scanrpl('RESULTS': 'SUMMARY': cmd);
+        cmd=%scanrpl('*REPLACE':mbrOpt:cmd);
         QCMDEXC(cmd:%len(%trimr(cmd)));
 
         time_taken = %DIFF (%timestamp() : start_time : *MSECONDS);
@@ -814,6 +839,9 @@
 **CTDATA CMDARR
 CPYTOIMPF FROMFILE(&wrklib/RESULTS) TOSTMF('&path') MBROPT(*REPLACE)
 STMFCCSID(1208) STMFAUT(*INDIR) RCDDLM(*CRLF) FLDDLM(';') ADDCOLNAM(*NONE)
+**CTDATA CMDARR2
+CALL QSYS2.IFS_WRITE_BINARY(PATH_NAME => '&path',
+LINE => BLOB(X'EFBBBF'), FILE_CCSID => 1208, OVERWRITE => 'REPLACE')
 **CTDATA SSQL1
 select lib, srcfile, mbr, mbrdesc, srctype from &wrklib/mbrlist order by lib, srcfile, mbr
 **CTDATA SSQL2
