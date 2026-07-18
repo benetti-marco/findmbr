@@ -105,6 +105,7 @@
         dcl-s rxFlag   char(1) inz('i');
 
         dcl-s csvPath  varchar(1024) inz('');
+        dcl-s csvSummaryPath  varchar(1024) inz('');
         dcl-s csvFolder  varchar(1024) inz('');
         dcl-s mbrOpt   char(10)      inz('*REPLACE');
         dcl-s usr      char(10)      inz('');
