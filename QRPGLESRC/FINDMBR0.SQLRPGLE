@@ -479,10 +479,13 @@
         exsr PRTERR;
 
         // Create summary table with distinct members that have results
-        sqlcmd = 'create or replace table &wrklib/RESULTS_SUMMARY as (' +
-                 'SELECT DISTINCT lib, srcfile, mbr, mbrdesc, srctype ' +
-                 'FROM &wrklib/RESULTS WHERE srcseq <> ''000000'' ' +
-                 'ORDER BY lib, srcfile, mbr)';
+        sqlcmd = 'create or replace table &wrklib/SUMMARY as (' +     
+          'SELECT DISTINCT CASE WHEN srcseq > ''000000'' THEN ''000000'' ELSE '+
+          'srcseq END as srcseq, lib, srcfile, mbr, mbrdesc, srctype, '+
+          'CASE WHEN srcseq > ''000000'' THEN '''' ELSE srcdta END AS srcdta ' +
+          'FROM &wrklib/RESULTS ' +
+          'ORDER BY srcseq, lib, srcfile, mbr) ' +
+          'WITH DATA ON REPLACE DELETE ROWS';             
         sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
         exec sql execute immediate :sqlcmd;
         exsr PRTERR;
@@ -498,10 +501,11 @@
         cmd = %trim(CMDARR(1))+' '+%trim(CMDARR(2));
         cmd=%scanrpl('&wrklib':%trim(p_WRKLIB):cmd);
         cmd = %scanrpl('&path':csvSummaryPath:cmd);
-        cmd = %scanrpl('RESULTS': 'RESULTS_SUMMARY': cmd);
+        cmd = %scanrpl('RESULTS': 'SUMMARY': cmd);
         QCMDEXC(cmd:%len(%trimr(cmd)));
 
         time_taken = %DIFF (%timestamp() : start_time : *MSECONDS);
+        time_taken=time_taken/1000;
 
         if logSQL=*on;
           STR132='time taken: '+%EDITC(time_taken:'K')+
