@@ -469,8 +469,8 @@
         // Export CSV with UTF-8 BOM
         // If not appending, create file with BOM first, then append CSV data
         if %trim(p_APPEND)<>'*YES';
-           // Create file with UTF-8 BOM (EF BB BF) using SQL BLOB function
-           sqlcmd = 'CALL SYSTOOLS.GENERATE_BLOB(CAST(X''EFBBBF'' AS BLOB(3)), ''&path'', ''OVERWRITE=YES'')';
+           // Create file with UTF-8 BOM (EF BB BF) using QSYS2.IFS_WRITE_BINARY
+           sqlcmd = 'CALL QSYS2.IFS_WRITE_BINARY(''&path'', X''EFBBBF'', ''OVERWRITE=YES'')';
            sqlcmd=%scanrpl('&path':csvPath:sqlcmd);
            exec sql execute immediate :sqlcmd;
            exsr PRTERR;
