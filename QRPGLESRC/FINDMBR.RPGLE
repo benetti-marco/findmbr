@@ -123,6 +123,13 @@
         // Derive behavior from input parameters
 
         sFile='';
+        
+        // Validate that at least TOK1 is provided
+        if %trim(p_TOK1) = '';
+          FailWith('At least one search token (TOK1) is required.');
+          return;
+        endif;
+
         // Validate requested files/libraries before queuing the batch
         for f = 1 to p_file.p_filecount;
           i1=20*(f-1)+1;

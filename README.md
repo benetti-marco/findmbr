@@ -19,6 +19,8 @@ FINDMBR is an IBM i command that searches source members across one or more sour
 - Supports *SRCPF keyword for indicating all source files in a library or explicit FILE/LIB pairs (up to 10).
 - Batch submission with selectable job queue.
 - CSV export to IFS with optional append.
+- **Two CSV outputs:** detail CSV with all matching lines and summary CSV with list of members containing results.
+- **Validation:** At least one FILE/LIB and TOK1 (search token) are required.
 - Optional exit program suffix to run post-processing.
 
 ## Command Parameters (FINDMBR)
@@ -68,7 +70,8 @@ FINDMBR is an IBM i command that searches source members across one or more sour
 
 ## Output
 
-- CSV: Written to CSVFOLDER/CSVFILE (UTF-8, ";" delimiter, CRLF).
+- CSV (detail): Written to CSVFOLDER/CSVFILE with all matching lines (UTF-8, ";" delimiter, CRLF).
+- CSV (summary): Written to CSVFOLDER/findmbr_<timestamp>_summary.csv with list of members containing results (UTF-8, ";" delimiter, CRLF).
 - Spool: Optional SQL/log output when LOG(*YES).
 
 ## Testing

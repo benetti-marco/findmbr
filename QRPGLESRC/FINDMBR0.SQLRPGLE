@@ -105,6 +105,7 @@
         dcl-s rxFlag   char(1) inz('i');
 
         dcl-s csvPath  varchar(1024) inz('');
+        dcl-s csvSummaryPath  varchar(1024) inz('');
         dcl-s csvFolder  varchar(1024) inz('');
         dcl-s mbrOpt   char(10)      inz('*REPLACE');
         dcl-s usr      char(10)      inz('');
@@ -183,6 +184,14 @@
 
         start_time=%timestamp();
 
+        // Validate that at least TOK1 is provided
+        if %trim(p_TOK1) = '';
+          STR132='Error: At least one search token (TOK1) is required.';
+          EXSR PRTROW;
+          *inlr = *on;
+          return;
+        endif;
+
         // Derive options from input parameters
         if %trim(p_REGEX)='*YES';
            useRegex=*on;
@@ -240,6 +249,9 @@
         else;
            csvPath =csvPath+%trim(p_CSVFILE);
         endif;
+
+        // Build summary CSV path
+        csvSummaryPath = csvFolder + 'findmbr_' + %CHAR(YTIMESTAMP) + '_summary.csv';
 
         if %trim(p_APPEND)='*YES';
            mbrOpt='*ADD';
@@ -466,15 +478,30 @@
         sqlcmd='close cursor';
         exsr PRTERR;
 
-        // Export CSV
+        // Create summary table with distinct members that have results
+        sqlcmd = 'create or replace table &wrklib/RESULTS_SUMMARY as (' +
+                 'SELECT DISTINCT lib, srcfile, mbr, mbrdesc, srctype ' +
+                 'FROM &wrklib/RESULTS WHERE srcseq <> ''000000'' ' +
+                 'ORDER BY lib, srcfile, mbr)';
+        sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+        exec sql execute immediate :sqlcmd;
+        exsr PRTERR;
+
+        // Export detail CSV
         cmd = %trim(CMDARR(1))+' '+%trim(CMDARR(2));
         cmd=%scanrpl('&wrklib':%trim(p_WRKLIB):cmd);
         cmd = %scanrpl('&path':csvPath:cmd);
 
         QCMDEXC(cmd:%len(%trimr(cmd)));
 
+        // Export summary CSV
+        cmd = %trim(CMDARR(1))+' '+%trim(CMDARR(2));
+        cmd=%scanrpl('&wrklib':%trim(p_WRKLIB):cmd);
+        cmd = %scanrpl('&path':csvSummaryPath:cmd);
+        cmd = %scanrpl('RESULTS': 'RESULTS_SUMMARY': cmd);
+        QCMDEXC(cmd:%len(%trimr(cmd)));
+
         time_taken = %DIFF (%timestamp() : start_time : *MSECONDS);
-        time_taken=time_taken/1000;
 
         if logSQL=*on;
           STR132='time taken: '+%EDITC(time_taken:'K')+
