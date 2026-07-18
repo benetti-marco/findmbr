@@ -105,6 +105,7 @@
         dcl-s rxFlag   char(1) inz('i');
 
         dcl-s csvPath  varchar(1024) inz('');
+        dcl-s csvSummaryPath  varchar(1024) inz('');
         dcl-s csvFolder  varchar(1024) inz('');
         dcl-s mbrOpt   char(10)      inz('*REPLACE');
         dcl-s usr      char(10)      inz('');
@@ -183,6 +184,14 @@
 
         start_time=%timestamp();
 
+        // Validate that at least TOK1 is provided
+        if %trim(p_TOK1) = '';
+          STR132='Error: At least one search token (TOK1) is required.';
+          EXSR PRTROW;
+          *inlr = *on;
+          return;
+        endif;
+
         // Derive options from input parameters
         if %trim(p_REGEX)='*YES';
            useRegex=*on;
@@ -240,6 +249,9 @@
         else;
            csvPath =csvPath+%trim(p_CSVFILE);
         endif;
+
+        // Build summary CSV path
+        csvSummaryPath = csvFolder + 'findmbr_' + %CHAR(YTIMESTAMP) + '_summary.csv';
 
         if %trim(p_APPEND)='*YES';
            mbrOpt='*ADD';
@@ -466,6 +478,18 @@
         sqlcmd='close cursor';
         exsr PRTERR;
 
+        // Create summary table with distinct members that have results
+        sqlcmd = 'create or replace table &wrklib/SUMMARY as (' +     
+          'SELECT DISTINCT CASE WHEN srcseq > ''000000'' THEN ''000000'' ELSE '+
+          'srcseq END as srcseq, lib, srcfile, mbr, mbrdesc, srctype, '+
+          'CASE WHEN srcseq > ''000000'' THEN '''' ELSE srcdta END AS srcdta ' +
+          'FROM &wrklib/RESULTS ' +
+          'ORDER BY srcseq, lib, srcfile, mbr) ' +
+          'WITH DATA ON REPLACE DELETE ROWS';             
+        sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+        exec sql execute immediate :sqlcmd;
+        exsr PRTERR;
+
         // Export CSV with UTF-8 BOM
         // If not appending, create file with BOM first, then append CSV data
         if %trim(p_APPEND)<>'*YES';
@@ -478,11 +502,19 @@
            mbrOpt='*ADD';
         endif;
 
+        // Export detail CSV
         cmd = %trim(CMDARR(1))+' '+%trim(CMDARR(2));
         cmd=%scanrpl('&wrklib':%trim(p_WRKLIB):cmd);
         cmd = %scanrpl('&path':csvPath:cmd);
         cmd=%scanrpl('*REPLACE':mbrOpt:cmd);
 
+        QCMDEXC(cmd:%len(%trimr(cmd)));
+
+        // Export summary CSV
+        cmd = %trim(CMDARR(1))+' '+%trim(CMDARR(2));
+        cmd=%scanrpl('&wrklib':%trim(p_WRKLIB):cmd);
+        cmd = %scanrpl('&path':csvSummaryPath:cmd);
+        cmd = %scanrpl('RESULTS': 'SUMMARY': cmd);
         QCMDEXC(cmd:%len(%trimr(cmd)));
 
         time_taken = %DIFF (%timestamp() : start_time : *MSECONDS);

@@ -36,6 +36,16 @@ A fast, flexible, open-source search utility for IBM i source members.
    CRTCMD CMD(FINDMBR/FINDMBR) PGM(FINDMBR/FINDMBR) SRCFILE(FINDMBR/QUTISRC)
    ```
 
+- Search up to 5 tokens with AND/OR semantics at line or member level.
+- Optional regular expressions via REGEXP_LIKE.
+- Case-sensitive or case-insensitive matching.
+- Supports *SRCPF keyword for indicating all source files in a library or explicit FILE/LIB pairs (up to 10).
+- Batch submission with selectable job queue.
+- CSV export to IFS with optional append.
+- **Two CSV outputs:** detail CSV with all matching lines and summary CSV with list of members containing results.
+- **Validation:** At least one FILE/LIB and TOK1 (search token) are required.
+- Optional exit program suffix to run post-processing.
+
 ## Usage
 
 ```
@@ -81,7 +91,8 @@ FINDMBR FILE(MYLIB/QRPGLESRC) TOK1('customer') TOK2('address')
 
 ## Output
 
-- CSV: Written to CSVFOLDER/CSVFILE (UTF-8 with BOM, ";" delimiter, CRLF).
+- CSV (detail): Written to CSVFOLDER/CSVFILE with all matching lines (UTF-8 with BOM, ";" delimiter, CRLF).
+- CSV (summary): Written to CSVFOLDER/findmbr_<timestamp>_summary.csv with list of members containing results (UTF-8, ";" delimiter, CRLF).
 - Spool: Optional SQL/log output when LOG(*YES).
 
 ## Testing

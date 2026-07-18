@@ -1,5 +1,5 @@
 /* ============================================================================== */
-/*   QCMDSRC(FINDMBR) - IBM i source-member search utility                        */  
+/*   QCMDSRC(FINDMBR) - IBM i source-member search utility                        */ 
 /*   Compile with: CRTCMD CMD(MYLIB/FINDMBR) PGM(MYLIB/FINDMBR)                   */ 
 /*                 SRCFILE(MYLIB/QCMDSRC)                                         */
 /* ============================================================================== */
@@ -38,8 +38,8 @@ FILLIB:      QUAL       TYPE(*NAME) LEN(10) MIN(1) +
              QUAL       TYPE(*NAME) LEN(10) MIN(1) CHOICE('Library') +
                           PROMPT('Library')
 
-/* Search: up to 5 tokens */
-             PARM       KWD(TOK1) TYPE(*CHAR) LEN(60) PROMPT('Token 1')
+/* Search: up to 5 tokens (at least TOK1 is required) */
+             PARM       KWD(TOK1) TYPE(*CHAR) LEN(60) MIN(1) PROMPT('Token 1')
              PARM       KWD(TOK2) TYPE(*CHAR) LEN(60) DFT('') PROMPT('Token 2')
              PARM       KWD(TOK3) TYPE(*CHAR) LEN(60) DFT('') PROMPT('Token 3')
              PARM       KWD(TOK4) TYPE(*CHAR) LEN(60) DFT('') PROMPT('Token 4')
