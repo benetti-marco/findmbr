@@ -69,7 +69,7 @@ FINDMBR is an IBM i command that searches source members across one or more sour
 ## Output
 
 - CSV (detail): Written to CSVFOLDER/CSVFILE with all matching lines (UTF-8 with BOM, ";" delimiter, CRLF).
-- CSV (summary): Written to CSVFOLDER/findmbr_<timestamp>_summary.csv with list of members containing results (UTF-8 with BOM, ";" delimiter, CRLF).
+- CSV (summary): Written to CSVFOLDER/CSVFILE_summary.csv with list of members containing results (UTF-8 with BOM, ";" delimiter, CRLF).
 - Spool: Optional SQL/log output when LOG(*YES).
 
 ## Testing
