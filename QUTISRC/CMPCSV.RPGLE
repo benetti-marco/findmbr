@@ -1,7 +1,7 @@
 **FREE
         // ============================================================================== //
         // PGM for command FINDMBR -  IBM i source-member search utility                  //
-        // Compile with: CRTBNDRPG PGM(MYLIB/FINDMBR_X) SRCFILE(MYLIB/QRPGLESRC)          //
+        // Compile with: CRTBNDRPG PGM(MYLIB/CMPCSV) SRCFILE(MYLIB/QUTISRC)               //
         // ============================================================================== //
         // ============================================================================== //
         // MIT License                                                                    //
