@@ -4,7 +4,6 @@ A fast, flexible, open-source search utility for IBM i source members.
 
 ## Features
 
-- **Blazing fast**: Uses SQL to search source members directly from the catalog
 - **Flexible**: Search by token, regex, case-sensitive/insensitive
 - **Multiple sources**: Search specific files, all source files (*SRCPF), or multiple libraries
 - **CSV output**: Results exported to CSV with UTF-8 encoding and BOM
@@ -20,20 +19,15 @@ A fast, flexible, open-source search utility for IBM i source members.
 5. Compile:
    ```
    CRTSQLRPGI OBJ(FINDMBR/FINDMBR0) SRCFILE(FINDMBR/QRPGLESRC) RPGPPOPT(*LVL2)
-   CRTRPGPGM PGM(FINDMBR/FINDMBR) SRCFILE(FINDMBR/QRPGLESRC)
-   CRTRPGPGM PGM(FINDMBR/FINDMBR_X) SRCFILE(FINDMBR/QRPGLESRC)
-   CRTCLMOD MODULE(FINDMBR/FINDMBR) SRCFILE(FINDMBR/QUTISRC)
-   CRTPGM PGM(FINDMBR/FINDMBR) MODULE(FINDMBR/FINDMBR) ACTGRP(*NEW)
-   CRTCLMOD MODULE(FINDMBR/FINDMBR_X) SRCFILE(FINDMBR/QUTISRC)
-   CRTPGM PGM(FINDMBR/FINDMBR_X) MODULE(FINDMBR/FINDMBR_X) ACTGRP(*NEW)
-   CRTCLMOD MODULE(FINDMBR/TEST_RUN) SRCFILE(FINDMBR/QUTISRC)
-   CRTPGM PGM(FINDMBR/TEST_RUN) MODULE(FINDMBR/TEST_RUN) ACTGRP(*NEW)
-   CRTCLMOD MODULE(FINDMBR/TEST_SETUP) SRCFILE(FINDMBR/QUTISRC)
-   CRTPGM PGM(FINDMBR/TEST_SETUP) MODULE(FINDMBR/TEST_SETUP) ACTGRP(*NEW)
+   CRTBNDRPG PGM(FINDMBR/FINDMBR) SRCFILE(FINDMBR/QRPGLESRC)
+   CRTBNDRPG PGM(FINDMBR/FINDMBR_X) SRCFILE(FINDMBR/QRPGLESRC)
+   CRTBNDRPG PGM(FINDMBR/CMPCSV) SRCFILE(FINDMBR/QUTISRC)
+   CRTBNDCL PGM(FINDMBR/TEST_RUN) SRCFILE(FINDMBR/QUTISRC)
+   CRTBNDCL PGM(FINDMBR/TEST_SETUP) SRCFILE(FINDMBR/QUTISRC)
    ```
 6. Create the command:
    ```
-   CRTCMD CMD(FINDMBR/FINDMBR) PGM(FINDMBR/FINDMBR) SRCFILE(FINDMBR/QUTISRC)
+   CRTCMD CMD(FINDMBR/FINDMBR) PGM(FINDMBR/FINDMBR) SRCFILE(FINDMBR/QCMDSRC)
    ```
 
 - Search up to 5 tokens with AND/OR semantics at line or member level.
@@ -43,13 +37,13 @@ A fast, flexible, open-source search utility for IBM i source members.
 - Batch submission with selectable job queue.
 - CSV export to IFS with optional append.
 - **Two CSV outputs:** detail CSV with all matching lines and summary CSV with list of members containing results.
-- **Validation:** At least one FILE/LIB and TOK1 (search token) are required.
+- **Validation:** At least one LIB/FILE and TOK1 (search token) are required.
 - Optional exit program suffix to run post-processing.
 
 ## Usage
 
 ```
-FINDMBR FILE(MYLIB/QRPGLESRC) TOK1('customer') TOK2('address')
+FINDMBR FILE(MYLIB/QRPGLESRC) TOK1('customer') TOK2('address')                       
 ```
 
 ### Parameters
@@ -64,7 +58,7 @@ FINDMBR FILE(MYLIB/QRPGLESRC) TOK1('customer') TOK2('address')
 - **APPEND**: *NO (default) or *YES to append to existing CSV file.
 - **WRKLIB**: Work library for temporary tables. Default QTEMP.
 - **LOG**: *NO (default) or *YES for SQL/log output to spool.
-- **EXITPGM**: Optional exit program name (without library) for custom filtering.
+- **EXITPGM**: Optional exit program suffix for custom filtering (e.g. 'X' for FINDMBR_X).
 
 ### Examples
 
@@ -92,7 +86,7 @@ FINDMBR FILE(MYLIB/QRPGLESRC) TOK1('customer') TOK2('address')
 ## Output
 
 - CSV (detail): Written to CSVFOLDER/CSVFILE with all matching lines (UTF-8 with BOM, ";" delimiter, CRLF).
-- CSV (summary): Written to CSVFOLDER/findmbr_<timestamp>_summary.csv with list of members containing results (UTF-8, ";" delimiter, CRLF).
+- CSV (summary): Written to CSVFOLDER/findmbr_<timestamp>_summary.csv with list of members containing results (UTF-8 with BOM, ";" delimiter, CRLF).
 - Spool: Optional SQL/log output when LOG(*YES).
 
 ## Testing
@@ -101,3 +95,13 @@ An IBM i end-to-end test harness is included in this repository.
 See **[TEST.md](TEST.md)** for the updated layout (`QUTISRC`, `tests/expected`, `tests/fixtures`, `tests/bin`) and full setup/compile/run steps.
 
 ## Use with Code for i extension
+
+You can add an Action with *Command(s) to run* like this (adapt libraries and Exit program suffix):  
+
+  ```
+FINDMBR FILE(${FILE|Libraries/Files|LIB1/*SRCPF LIB2/*SRCPF LIB2/*SRCPF LIB4/*SRCPF LIB5/*SRCPF}) TOK1(${TOK1|First token to search|}) TOK2(${TOK2|Second token to search|}) TOK3(${TOK3|Third token to search|}) TOK4(${TOK4|Fourth token to search|}) TOK5(${TOK5|Fifth token to search|}) MODE(${MODE|Search mode|*ANDMBR}) CASE(${CASE|Case|*INSENSITIVE}) REGEXP(${REGEXP|Use regular expressions|*NO}) CSVFOLDER(${CSVFOLDER|Csv folder|*USRHOME}) CSVFILE(${CSVFILE|Csv file name|*AUTO}) BCHJOB(${BCHJOB|Execute in batch|*YES}) EXITPGM('X')
+  ```
+This is the action prompt:  
+  
+<img width="700" height="920" alt="FINDMBR_prompt" src="https://github.com/user-attachments/assets/f295f265-d06e-475a-8aed-911356845f0b" />
+
