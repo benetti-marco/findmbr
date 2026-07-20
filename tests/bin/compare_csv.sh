@@ -41,7 +41,9 @@ if [ ! -r "$left" ] || [ ! -r "$right" ]; then
   exit 1
 fi
 
-diff <(sed 's/\r$//' "$left") <(sed 's/\r$//' "$right") >/dev/null 2>&1
+# Remove UTF-8 BOM (EF BB BF) if present and normalize line endings
+diff <(sed -e '1s/^\xEF\xBB\xBF//' -e 's/\r$//' "$left") \
+     <(sed -e '1s/^\xEF\xBB\xBF//' -e 's/\r$//' "$right") >/dev/null 2>&1
 if [ $? -eq 0 ]; then
   echo "OK: files are identical"
   exit 0
