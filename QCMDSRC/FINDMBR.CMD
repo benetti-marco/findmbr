@@ -1,6 +1,3 @@
-/********************************************************************/
-/* 300326 #MB01 TDL-4525 Installato FINDMBR  (con default exit X)   */
-/********************************************************************/
 /* ===========================================================================*/
 /*   QCMDSRC(FINDMBR) - IBM i source-member search utility                    */
 /*   Compile with: CRTCMD CMD(MYLIB/FINDMBR) PGM(MYLIB/FINDMBR)               */

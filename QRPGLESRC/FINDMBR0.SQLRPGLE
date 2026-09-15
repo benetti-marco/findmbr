@@ -1,7 +1,4 @@
 **FREE
-        //**********************************************************************/
-        // 300326 #MB01 TDL-4525 Installato FINDMBR adeguando percorso /copy   */
-        //**********************************************************************/
         // ============================================================================== //
         // PGM for command FINDMBR -  IBM i source-member search utility                  //
         // Compile with: CRTSQLRPGI OBJ(MYLIB/FINDMBR0) SRCFILE(MYLIB/QRPGLESRC)          //

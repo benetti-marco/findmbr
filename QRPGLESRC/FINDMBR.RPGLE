@@ -1,7 +1,4 @@
 **FREE
-        //*************************************************************/
-        // 300326 #MB01 TDL-4525 Installato FINDMBR                   */
-        //*************************************************************/
         // ============================================================================== //
         // PGM for command FINDMBR -  IBM i source-member search utility                  //
         // Compile with: CRTBNDRPG PGM(MYLIB/FINDMBR) SRCFILE(MYLIB/QRPGLESRC)            //
