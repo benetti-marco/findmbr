@@ -1,4 +1,7 @@
 **FREE
+        //**********************************************************************/
+        // 300326 #MB01 TDL-4525 Installato FINDMBR adeguando percorso /copy   */
+        //**********************************************************************/
         // ============================================================================== //
         // PGM for command FINDMBR -  IBM i source-member search utility                  //
         // Compile with: CRTSQLRPGI OBJ(MYLIB/FINDMBR0) SRCFILE(MYLIB/QRPGLESRC)          //
@@ -33,10 +36,10 @@
         // ===================================================================
         dcl-f QSYSPRT printer(132) usropn oflind(*inoa);
 
-        dcl-pr QCMDEXC extpgm('QCMDEXC');
-            cmd  char(32702) options(*varsize);
-            len  packed(15:5)   const;
-        end-pr;
+        // dcl-pr QCMDEXC extpgm('QCMDEXC');
+            // cmd  char(32702) options(*varsize);
+            // len  packed(15:5)   const;
+        // end-pr;
 
         dcl-pr BuildPreds;
           expr        varchar(64) const;
@@ -52,6 +55,7 @@
           oPredLine   varchar(32766);
           oPredAny    varchar(32766);
           oHaving     varchar(32766);
+          oCaseWhen   varchar(32766);
         end-pr;
 
         dcl-pr WordWrap;
@@ -117,11 +121,14 @@
         dcl-s rcount    int(20)        inz(0);
         dcl-s f         int(5)        inz(0);
         dcl-s x         int(5)        inz(0);
+        dcl-s ln        int(10)        inz(0);
+        dcl-s ext       char(4);
         dcl-s expr      varchar(64)    inz('');
         dcl-s sql       varchar(32766) inz('');
         dcl-s predLine  varchar(32766) inz('');
         dcl-s predAny   varchar(32766) inz('');
         dcl-s having    varchar(32766) inz('');
+        dcl-s casewhen  varchar(32766) inz('');
         dcl-s lib       char(10)       inz('');
         dcl-s srcfile   char(10)       inz('');
         dcl-s mbr       char(10)       inz('');
@@ -129,11 +136,12 @@
         dcl-s exitpgm   char(10)       inz('');
         dcl-s srcpfesc  char(10) dim(100);
         dcl-s srcpflst  varchar(1500) inz('');
-        dcl-s tmpstring   varchar(100)       inz('');
+        dcl-s mbrdescqt   varchar(100)       inz('');
         dcl-s srctype   char(10)       inz('');
-        dcl-s cmd       char(1024)  inz('');
+        // dcl-s cmd       char(1024)  inz('');
+        dcl-s cmd       varchar(1024)  inz('');
         dcl-s sqlcmd    varchar(10000)  inz('');
-        dcl-s sqltmp    varchar(2000)  inz('');
+        dcl-s sqlins    varchar(2000)  inz('');
         dcl-s swhere    varchar(1000)  inz('');
         dcl-s sfile     varchar(10)  inz('');
         dcl-s slib     varchar(10)  inz('');
@@ -142,6 +150,7 @@
         dcl-s lines     varchar(100) dim(500);
         dcl-s retSqlState  char(5)  inz('');
         dcl-s retSqlCode  packed(5:0)  inz(0);
+        dcl-s v_WRKLIB   varchar(10);
 
         dcl-c cQuote       '''';
         dcl-c cDoubleQuote '''''';
@@ -156,14 +165,18 @@
                   //                   System user name
             YUSER char(10) POS(254);
         end-ds;
+        dcl-pr SysCmd int(10) extproc('system');
+           CmdString pointer value options(*string);
+        end-pr SysCmd;
+        dcl-s ErrMsg char(7) import('_EXCP_MSGID');
 
         dcl-s YTODAYISO date(*ISO)  INZ(*SYS);
         dcl-s YTIME time(*HMS)  INZ(*SYS);
         dcl-s YTIMESTAMP timestamp  INZ(*SYS);
         dcl-s start_time timestamp;
         dcl-s time_taken int(20);
-      /copy QRPGLEINC,IFSIO_H
-      /copy QRPGLEINC,ERRNO_H
+      /copy QRPGLESRC,IFSIO2_H
+      /include QRPGLESRC,ERRNO2_H
         dcl-s CMDARR    Char(100)  DIM(02) CTDATA PERRCD(1);
         dcl-s CMDARR2   Char(100)  DIM(02) CTDATA PERRCD(1);
         dcl-s SSQL1     Char(100)  DIM(15) CTDATA PERRCD(1);
@@ -193,6 +206,7 @@
           return;
         endif;
 
+        v_WRKLIB=%trim(p_WRKLIB);
         // Derive options from input parameters
         if %trim(p_REGEX)='*YES';
            useRegex=*on;
@@ -245,14 +259,25 @@
           eval csvPath=%scanrpl('~':'/home/'+%trim(usr):csvPath);
         endif;
         csvFolder=csvPath;
+        ln=%len(%trim(p_CSVFILE));
+        if ln>4;
+           ext=%subst(%lower(%trim(p_CSVFILE)):ln-3:4);
+           if ext='.csv';
+             p_CSVFILE=%subst(%trim(p_CSVFILE):1:ln-4);
+           endif;
+        endif;
         if %trim(p_CSVFILE)='*AUTO';
            csvPath=csvPath+'findmbr_'+%CHAR(YTIMESTAMP)+'.csv';
         else;
-           csvPath =csvPath+%trim(p_CSVFILE);
+           csvPath =csvPath+%trim(p_CSVFILE)+'.csv';
         endif;
 
         // Build summary CSV path
-        csvSummaryPath = csvFolder + 'findmbr_' + %CHAR(YTIMESTAMP) + '_summary.csv';
+        if %trim(p_CSVFILE)='*AUTO';
+           csvSummaryPath=csvFolder+'findmbr_'+%CHAR(YTIMESTAMP)+'_summary.csv';
+        else;
+           csvSummaryPath=csvFolder+%trim(p_CSVFILE)+'_summary.csv';
+        endif;
 
         if %trim(p_APPEND)='*YES';
            mbrOpt='*ADD';
@@ -262,7 +287,7 @@
 
         CreatePath(csvFolder);
 
-        sqlcmd = 'create or replace table &wrklib/results('+
+        sqlcmd = 'create or replace table '+v_WRKLIB+'/results('+
          ' lib     varchar(10), '+
          ' srcfile varchar(10), '+
          ' mbr     varchar(10), '+
@@ -271,18 +296,18 @@
          ' srcseq  varchar(6), '+
          ' srcdta  varchar(600)) '+
          'on replace delete rows';
-        sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+
         exec sql execute immediate :sqlcmd;
         exsr PRTERR;
 
-        sqlcmd = 'create or replace table &wrklib/mbrlist('+
+        sqlcmd = 'create or replace table '+v_WRKLIB+'/mbrlist('+
          ' lib     char(10), '+
          ' srcfile char(10), '+
          ' mbr     char(10), '+
          ' mbrdesc char(50), '+
          ' srctype char(10)) '+
          'on replace delete rows';
-        sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+
         exec sql execute immediate :sqlcmd;
         exsr PRTERR;
 
@@ -325,7 +350,7 @@
               sqlcmd=%scanrpl('&where':swhere:sqlcmd);
               sqlcmd=%scanrpl('&file':FileEntry.File:sqlcmd);
               sqlcmd=%scanrpl('&listfile':srcpflst:sqlcmd);
-              sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+              sqlcmd=%scanrpl('&wrklib':v_WRKLIB:sqlcmd);
 
               sLib=%upper(FileEntry.Lib);
               exsr PRTLOG;
@@ -368,7 +393,7 @@
         sconditions=%trim(sconditions)+' CASE('+%trim(p_CASE)+')';
         sconditions=%trim(sconditions)+' REGEXP('+%trim(p_REGEX)+')';
         // Expression and comment filtering
-        if vCase='I' and useRegex=*off;
+        if vCase='I';
           expr ='UPPER(SRCDTA)';
         else;
           expr ='SRCDTA';
@@ -382,7 +407,7 @@
             endif;
             sqlcmd = %trimr(sqlcmd)+' '+%TRIMR(SSQL4(i));
         endfor;
-        sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+        sqlcmd=%scanrpl('&wrklib':v_WRKLIB:sqlcmd);
         exsr PRTLOG;
         exec sql execute immediate :sqlcmd;
         exsr PRTERR;
@@ -396,14 +421,14 @@
             sqlcmd = %trimr(sqlcmd)+' '+%TRIMR(SSQL5(i));
         endfor;
         sqlcmd=%scanrpl('&conditions':%trim(sconditions):sqlcmd);
-        sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+        sqlcmd=%scanrpl('&wrklib':v_WRKLIB:sqlcmd);
         exsr PRTLOG;
         exec sql execute immediate :sqlcmd;
         exsr PRTERR;
 
         // loop on members's list
         sqlcmd=SSQL1(1);
-        sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+        sqlcmd=%scanrpl('&wrklib':v_WRKLIB:sqlcmd);
         exec sql declare C cursor for s1;
         exec sql prepare s1 from :sqlcmd;
         exsr PRTERR;
@@ -413,21 +438,21 @@
         // Build WHERE and HAVING clauses
         BuildPreds( expr : useRegex : rxFlag : vCase
                   : p_TOK1 : p_TOK2 : p_TOK3 : p_TOK4 : p_TOK5 : p_MODE
-                  : predLine : predAny : having);
+                  : predLine : predAny : having : casewhen);
 
         // Insert matching lines
-        sqltmp='';
+        sqlins='';
         for i=1 to %elem(SSQL3);
             if SSQL3(i)='';
               leave;
             endif;
-            sqltmp = %trimr(sqltmp)+' '+%TRIMR(SSQL3(i));
+            sqlins = %trimr(sqlins)+' '+%TRIMR(SSQL3(i));
         endfor;
-        sqltmp=%scanrpl('&having':%trim(having):sqltmp);
-        sqltmp=%scanrpl('&predAny':%trim(predAny):sqltmp);
-        sqltmp=%scanrpl('&predLine':%trim(predLine):sqltmp);
-        sqltmp=%scanrpl('&wrklib':%trim(p_WRKLIB):sqltmp);
-
+        sqlins=%scanrpl('&having':having:sqlins);
+        sqlins=%scanrpl('&casewhen':casewhen:sqlins);
+        sqlins=%scanrpl('&predAny':predAny:sqlins);
+        sqlins=%scanrpl('&predLine':predLine:sqlins);
+        sqlins=%scanrpl('&wrklib':v_WRKLIB:sqlins);
 
         r=0;
         r2=0;
@@ -438,26 +463,33 @@
 
           r = r+1;
           // Create alias for member
-          sqlcmd = 'CREATE OR REPLACE ALIAS &wrklib/FINDMBR' +
-                ' FOR "' + %trim(lib) + '"/"' + %trim(srcfile)
-                + '"("' + %trim(mbr) + '")';
-          sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
-          exsr PRTLOG;
-          exec sql execute immediate :sqlcmd;
-          exsr PRTERR;
+          // sqlcmd = 'CREATE OR REPLACE ALIAS '+v_WRKLIB+'/FINDMBR' +
+                // ' FOR "' + %trim(lib) + '"/"' + %trim(srcfile)
+                // + '"("' + %trim(mbr) + '")';
 
-          sqlcmd=sqltmp;
-          sqlcmd=%scanrpl('&lib':%trim(lib):sqlcmd);
-          sqlcmd=%scanrpl('&srcfile':%trim(srcfile):sqlcmd);
-          tmpstring=%scanrpl(cQuote : cDoubleQuote : %trimr(mbrdesc));
-          sqlcmd=%scanrpl('&mbrdesc':%trim(tmpstring):sqlcmd);
-          sqlcmd=%scanrpl('&mbr':%trim(mbr):sqlcmd);
-          sqlcmd=%scanrpl('&srctype':%trim(srctype):sqlcmd);
+          // exsr PRTLOG;
+          // exec sql execute immediate :sqlcmd;
+          // exsr PRTERR;
+          cmd='OVRDBF FILE(FINDMBR) TOFILE('+%trim(lib)+'/'+%trim(srcfile)+
+            ') MBR(' + %trim(mbr) + ') OVRSCOPE(*ACTGRPDFN)';
+          if SysCmd(cmd)<>0;
+            EXSR PRTCMDERR;
+            leave;
+          endif;
+
+          // prepare after ovrdbf
+          if r=1;
+            exec sql prepare sIns from :sqlins;
+            exsr PRTERR;
+          endif;
+
+          mbrdescqt=%scanrpl(cQuote : cDoubleQuote : %trimr(mbrdesc));
 
           if r=1;
             exsr PRTLOG;
           endif;
-          exec sql execute immediate :sqlcmd;
+          // exec results insert
+          exec sql execute sIns using :lib, :srcfile, :mbr, :mbrdescqt, :srctype;
           exsr PRTERR;
           if logSQL=*on;
             exec sql GET DIAGNOSTICS :rcount = ROW_COUNT;
@@ -465,29 +497,38 @@
               r2=r2+1;
             endif;
           endif;
+          cmd='DLTOVR FILE(FINDMBR) LVL(*ACTGRPDFN)';
+          if SysCmd(cmd)<>0; 
+            EXSR PRTCMDERR;
+            leave;
+          endif;
           exec sql fetch C into :lib, :srcfile, :mbr, :mbrdesc, :srctype;
           sqlcmd='fetch';
           exsr PRTERR;
         enddo;
 
-        sqlcmd = 'DROP ALIAS &wrklib/FINDMBR';
-        sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
-        exec sql execute immediate :sqlcmd;
-        exsr PRTERR;
-
         exec sql close C;
         sqlcmd='close cursor';
         exsr PRTERR;
 
+        // sqlcmd = 'DROP ALIAS '+v_WRKLIB+'/FINDMBR';
+
+        // exec sql execute immediate :sqlcmd;
+        // exsr PRTERR;
+
         // Create summary table with distinct members that have results
-        sqlcmd = 'create or replace table &wrklib/SUMMARY as (' +     
-          'SELECT DISTINCT CASE WHEN srcseq > ''000000'' THEN ''000000'' ELSE '+
-          'srcseq END as srcseq, lib, srcfile, mbr, mbrdesc, srctype, '+
-          'CASE WHEN srcseq > ''000000'' THEN '''' ELSE srcdta END AS srcdta ' +
-          'FROM &wrklib/RESULTS ' +
+        sqlcmd = 'create or replace table '+v_WRKLIB+'/SUMMARY as (' +
+          'SELECT DISTINCT CASE WHEN srcseq = ''Seq.Nr'' '+
+          ' THEN srcseq ELSE ''000000'' END '+
+          ' as srcseq, lib, srcfile, mbr, mbrdesc, srctype, '+
+          'CASE WHEN (srcseq = ''000000'' and mbrdesc =''Conditions'') '+
+          'OR srcseq = ''Seq.Nr'' '+
+          'THEN srcdta ELSE '''' END AS srcdta ' +
+          'FROM '+v_WRKLIB+'/RESULTS ' +
           'ORDER BY srcseq, lib, srcfile, mbr) ' +
-          'WITH DATA ON REPLACE DELETE ROWS';             
-        sqlcmd=%scanrpl('&wrklib':%trim(p_WRKLIB):sqlcmd);
+          'WITH DATA ON REPLACE DELETE ROWS';
+
+
         exec sql execute immediate :sqlcmd;
         exsr PRTERR;
 
@@ -504,11 +545,14 @@
         endif;
 
         cmd = %trim(CMDARR(1))+' '+%trim(CMDARR(2));
-        cmd=%scanrpl('&wrklib':%trim(p_WRKLIB):cmd);
+        cmd=%scanrpl('&wrklib':v_WRKLIB:cmd);
         cmd = %scanrpl('&path':csvPath:cmd);
         cmd=%scanrpl('*REPLACE':mbrOpt:cmd);
 
-        QCMDEXC(cmd:%len(%trimr(cmd)));
+        // QCMDEXC(cmd:%len(%trimr(cmd)));
+        if SysCmd(cmd)<>0;
+          EXSR PRTCMDERR;
+        endif;
 
         // Export summary CSV
         // If not appending, create file with BOM first, then append CSV data
@@ -523,11 +567,14 @@
         endif;
 
         cmd = %trim(CMDARR(1))+' '+%trim(CMDARR(2));
-        cmd=%scanrpl('&wrklib':%trim(p_WRKLIB):cmd);
+        cmd=%scanrpl('&wrklib':v_WRKLIB:cmd);
         cmd = %scanrpl('&path':csvSummaryPath:cmd);
         cmd = %scanrpl('RESULTS': 'SUMMARY': cmd);
         cmd=%scanrpl('*REPLACE':mbrOpt:cmd);
-        QCMDEXC(cmd:%len(%trimr(cmd)));
+        // QCMDEXC(cmd:%len(%trimr(cmd)));
+        if SysCmd(cmd)<>0;
+          EXSR PRTCMDERR;
+        endif;
 
         time_taken = %DIFF (%timestamp() : start_time : *MSECONDS);
         time_taken=time_taken/1000;
@@ -570,6 +617,27 @@
             SS1132=*all'-';
             write QSYSPRT SS1132;
           endif;
+
+        ENDSR;
+        // ---------------------------------------------------------------
+        //  Print cmd error
+        // ---------------------------------------------------------------
+        BEGSR PRTCMDERR;
+
+            STR132='Error '+ErrMsg;
+            EXSR PRTROW;
+            WordWrap( cmd : 100 : lines );
+
+            for i = 1 to %elem(lines);
+              if %len(lines(i)) = 0;
+                  leave;
+              endif;
+
+              STR132=lines(i);
+              EXSR PRTROW;
+            endfor;
+            SS1132=*all'-';
+            write QSYSPRT SS1132;
 
         ENDSR;
         // ---------------------------------------------------------------
@@ -641,12 +709,14 @@
             MODE        varchar(10) const;
             oPredLine   varchar(32766);        // => HAS1>0 AND HAS2>0 ...
             oPredAny    varchar(32766);        // => pred1 OR pred2 OR ...
-            oHaving     varchar(32766);        // => SUM(CASE WHEN pred1 THEN... ) AS HAS1, ...
+            oHaving     varchar(32766);        // => MAX(CAS... ) AS HAS1, ...
+            oCaseWhen   varchar(32766);        // => CASE WHEN ... AS CAS1, ...
           end-pi;
 
           dcl-s whereAll  varchar(32766) inz('');      // AND di HASn>0
           dcl-s whereAny  varchar(32766) inz('');      // OR di predicati riga
-          dcl-s chkCols   varchar(32766) inz('');      // lista SUM(... ) AS HASn
+          dcl-s chkCols   varchar(32766) inz('');      // lista MAX(... ) AS HASn
+          dcl-s casCols   varchar(32766) inz('');      // lista CASE AS HASn
 
           dcl-s a         varchar(300) dim(5);
           dcl-s n         int(10);
@@ -654,7 +724,11 @@
           dcl-s v         varchar(300);
           dcl-s pred      varchar(1024);
           dcl-s alias     varchar(20);
+          dcl-s casew     varchar(20);
           dcl-s tokenCnt  int(10) inz(0);
+          dcl-s isRegex  ind;
+          dcl-c METACHARS '\^$.|?*+()[]{}';
+          dcl-c SENTINEL   '*************';
 
           dcl-c cQuote       '''';
           dcl-c cDoubleQuote '''''';
@@ -671,10 +745,16 @@
               // Escape quotes inside the token
               lit = %scanrpl(cQuote : cDoubleQuote : %trimr(a(n)));
 
-              // Build per-line predicate using regex or LIKE
               if useRx;
+                // true if contains a regex metachar
+                isRegex = (%xlate(METACHARS : SENTINEL : lit) <> lit);
+              else;
+                isRegex = *off;
+              endif;
+              // Build per-line predicate using regex or LIKE
+              if useRx and isRegex;
                 // REGEXP_LIKE(expr, 'lit', 'rxFlag')
-                pred = 'REGEXP_LIKE('+expr+','''+lit+''','''+rxFlag+''')';
+                pred = 'REGEXP_LIKE(SRCDTA,'''+lit+''','''+rxFlag+''')';
               else;
                 // LIKE with uppercase handling
                 if vCase = 'I';
@@ -687,23 +767,29 @@
 
               // Alias for this token in the CHK CTE: HAS1, HAS2, ...
               tokenCnt += 1;
+              casew = 'CAS' + %trim(%char(tokenCnt));
               alias = 'HAS' + %trim(%char(tokenCnt));
 
+              if casCols<> '';
+                casCols += ', ';
+              endif;
+              casCols += 'CASE WHEN ' + pred +
+                         ' THEN 1 ELSE 0 END AS ' + casew;
               // Add aggregate column to CHK (oHaving)
               if chkCols <> '';
                 chkCols += ', ';
               endif;
-              chkCols += 'SUM(CASE WHEN ' + pred +
-                         ' THEN 1 ELSE 0 END) AS ' + alias;
+              chkCols += 'MAX(' + casew +
+                         ') AS ' + alias;
 
               // Add condition for tokens being present
               if whereAll = '';
-                whereAll = alias + ' > 0';
+                whereAll = alias + ' = 1';
               else;
                 if %trim(MODE)='*OR';
-                  whereAll += ' OR ' + alias + ' > 0';
+                  whereAll += ' OR ' + alias + ' = 1';
                 else;
-                  whereAll += ' AND ' + alias + ' > 0';
+                  whereAll += ' AND ' + alias + ' = 1';
                 endif;
               endif;
 
@@ -725,6 +811,7 @@
           oPredLine = whereAll;   // eg: 1=1 AND HAS1>0 AND HAS2>0
           oPredAny  = whereAny;   // eg: pred1 OR pred2 OR ...
           oHaving   = chkCols;    // eg: SUM(CASE WHEN pred1...) AS HAS1, ...
+          oCaseWhen = casCols;
 
         end-proc;
 
@@ -834,7 +921,7 @@
             ENDIF;
         end-proc;
       /DEFINE ERRNO_LOAD_PROCEDURE
-      /COPY QRPGLEINC,ERRNO_H
+      /include QRPGLESRC,ERRNO2_H
         // =======================================================================
 **CTDATA CMDARR
 CPYTOIMPF FROMFILE(&wrklib/RESULTS) TOSTMF('&path') MBROPT(*REPLACE)
@@ -857,15 +944,16 @@ where a.system_table_schema= ? and c.file_type='S' and d.column_name='SRCDTA'
 and IFNULL(d.CCSID, 0) <> 65535
 &where
 **CTDATA SSQL3
-INSERT INTO &wrklib/RESULTS (LIB, SRCFILE, MBR, MBRDESC, SRCTYPE, SRCSEQ, SRCDTA)
-WITH BASE AS (SELECT SRCSEQ, SRCDTA FROM &wrklib/FINDMBR),
-CHK AS (SELECT &having
-FROM BASE)
-SELECT '&lib' AS LIB, '&srcfile' AS FILE, '&mbr' AS MBR, '&mbrdesc' AS MBRDESC,
-'&srctype' AS SRCTYPE, DIGITS(SRCSEQ), SRCDTA
-FROM BASE, CHK WHERE (&predLine)
-  AND (&predAny)
-ORDER BY SRCSEQ
+insert into &wrklib/RESULTS (LIB, SRCFILE, MBR, MBRDESC, SRCTYPE, SRCSEQ, SRCDTA)
+with PARAMS as (SELECT cast(? as char(10)) as LIB, cast(? as char(10)) as file,
+cast(? as char(10)) as MBR, cast(? as varchar(100)) as MBRDESC,
+cast(? as char(10)) as SRCTYPE FROM SYSIBM.SYSDUMMY1),
+BASE as (select SRCSEQ, SRCDTA, &casewhen from FINDMBR
+where &predAny),
+CHK as (select &having from BASE)
+select PARAMS.LIB, PARAMS.file, PARAMS.MBR, PARAMS.MBRDESC, PARAMS.SRCTYPE,
+digits(SRCSEQ), SRCDTA from BASE, CHK, PARAMS
+where (&predLine) order by SRCSEQ
 **CTDATA SSQL4
 INSERT INTO &wrklib/RESULTS (LIB,SRCFILE,MBR,MBRDESC,SRCTYPE,SRCSEQ,SRCDTA)
 values('Library', 'Src File', 'Member', 'Description', 'Src Type', 'Seq.Nr', 'Row')

@@ -1,31 +1,35 @@
-/* ============================================================================== */
-/*   QCMDSRC(FINDMBR) - IBM i source-member search utility                        */ 
-/*   Compile with: CRTCMD CMD(MYLIB/FINDMBR) PGM(MYLIB/FINDMBR)                   */ 
-/*                 SRCFILE(MYLIB/QCMDSRC)                                         */
-/* ============================================================================== */
-/* ============================================================================== */
-/* MIT License                                                                    */
-/*                                                                                */
-/* Copyright (c) 2025-2026 Marco Benetti                                          */
-/*                                                                                */
-/* Permission is hereby granted, free of charge, to any person obtaining a copy   */
-/* of this software and associated documentation files (the "Software"), to deal  */
-/* in the Software without restriction, including without limitation the rights   */
-/* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell      */
-/* copies of the Software, and to permit persons to whom the Software is          */
-/* furnished to do so, subject to the following conditions:                       */
-/*                                                                                */
-/* The above copyright notice and this permission notice shall be included in all */
-/* copies or substantial portions of the Software.                                */
-/*                                                                                */
-/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR     */
-/* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,       */
-/* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE    */
-/* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER         */
-/* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,  */
-/* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE  */
-/* SOFTWARE.                                                                      */
-/* ============================================================================== */
+/********************************************************************/
+/* 300326 #MB01 TDL-4525 Installato FINDMBR  (con default exit X)   */
+/********************************************************************/
+/* ===========================================================================*/
+/*   QCMDSRC(FINDMBR) - IBM i source-member search utility                    */
+/*   Compile with: CRTCMD CMD(MYLIB/FINDMBR) PGM(MYLIB/FINDMBR)               */
+/*                 SRCFILE(MYLIB/QCMDSRC)                                     */
+/* ===========================================================================*/
+/* ===========================================================================*/
+/* MIT License                                                                */
+/*                                                                            */
+/* Copyright (c) 2025-2026 Marco Benetti                                      */
+/*                                                                            */
+/* Permission is hereby granted, free of charge, to any person obtaining      */
+/* a copy of this software and associated documentation files                 */
+/* (the "Software"), to deal                                                  */
+/* in the Software without restriction, including without limitation the      */
+/* rights to use, copy, modify, merge, publish, distribute, sublicense,       */
+/* and/or sell copies of the Software, and to permit persons to whom          */
+/* the Software is furnished to do so, subject to the following conditions:   */
+/*                                                                            */
+/* The above copyright notice and this permission notice shall be included    */
+/* in all copies or substantial portions of the Software.                     */
+/*                                                                            */
+/* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR */
+/* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,   */
+/* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL    */
+/* THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER */
+/* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING    */
+/* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER        */
+/* DEALINGS IN THE SOFTWARE.                                                  */
+/* ===========================================================================*/
              CMD        PROMPT('Search text in source members')
 
 /* Required FILE/LIB list (up to 10 entries) */
@@ -39,11 +43,16 @@ FILLIB:      QUAL       TYPE(*NAME) LEN(10) MIN(1) +
                           PROMPT('Library')
 
 /* Search: up to 5 tokens (at least TOK1 is required) */
-             PARM       KWD(TOK1) TYPE(*CHAR) LEN(60) MIN(1) PROMPT('Token 1')
-             PARM       KWD(TOK2) TYPE(*CHAR) LEN(60) DFT('') PROMPT('Token 2')
-             PARM       KWD(TOK3) TYPE(*CHAR) LEN(60) DFT('') PROMPT('Token 3')
-             PARM       KWD(TOK4) TYPE(*CHAR) LEN(60) DFT('') PROMPT('Token 4')
-             PARM       KWD(TOK5) TYPE(*CHAR) LEN(60) DFT('') PROMPT('Token 5')
+             PARM       KWD(TOK1) TYPE(*CHAR) LEN(60) MIN(1) +
+                          CASE(*MIXED) PROMPT('Token 1')
+             PARM       KWD(TOK2) TYPE(*CHAR) LEN(60) DFT('') +
+                          CASE(*MIXED) PROMPT('Token 2')
+             PARM       KWD(TOK3) TYPE(*CHAR) LEN(60) DFT('') +
+                          CASE(*MIXED) PROMPT('Token 3')
+             PARM       KWD(TOK4) TYPE(*CHAR) LEN(60) DFT('') +
+                          CASE(*MIXED) PROMPT('Token 4')
+             PARM       KWD(TOK5) TYPE(*CHAR) LEN(60) DFT('') +
+                          CASE(*MIXED) PROMPT('Token 5')
 
              PARM       KWD(MODE) TYPE(*CHAR) LEN(10) DFT(*ANDMBR) +
                           VALUES(*OR *ANDLINE *ANDMBR) +
@@ -60,11 +69,13 @@ FILLIB:      QUAL       TYPE(*NAME) LEN(10) MIN(1) +
                           PROMPT('Exit program suffix')
 
 /* Output */
-             PARM       KWD(CSVFOLDER) TYPE(*CHAR) LEN(500) DFT(*USRHOME) +
-                          PROMPT('Output CSV folder or *USRHOME')
+             PARM       KWD(CSVFOLDER) TYPE(*CHAR) LEN(500) +
+                          DFT(*USRHOME) CASE(*MIXED) PROMPT('Output +
+                          CSV folder or *USRHOME')
 
              PARM       KWD(CSVFILE) TYPE(*CHAR) LEN(50) DFT(*AUTO) +
-                          PROMPT('Output CSV file name or *AUTO')
+                          CASE(*MIXED) PROMPT('Output CSV file name +
+                          or *AUTO')
 
              PARM       KWD(APPEND) TYPE(*CHAR) LEN(4) DFT(*NO) +
                           VALUES(*NO *YES) PROMPT('Append to CSV if exists') +

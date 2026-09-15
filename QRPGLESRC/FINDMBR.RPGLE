@@ -1,4 +1,7 @@
 **FREE
+        //*************************************************************/
+        // 300326 #MB01 TDL-4525 Installato FINDMBR                   */
+        //*************************************************************/
         // ============================================================================== //
         // PGM for command FINDMBR -  IBM i source-member search utility                  //
         // Compile with: CRTBNDRPG PGM(MYLIB/FINDMBR) SRCFILE(MYLIB/QRPGLESRC)            //
@@ -112,6 +115,9 @@
         dcl-s msgKey char(4);
         dcl-s errCode char(8) inz(*loval);
 
+        dcl-c cQuote       '''';
+        dcl-c cDoubleQuote '''''';
+
         dcl-s CMDARR    Char(100)  DIM(7) CTDATA PERRCD(1);
         dcl-s CMDJOBQ   Char(100)  DIM(1) CTDATA PERRCD(1);
 
@@ -123,7 +129,7 @@
         // Derive behavior from input parameters
 
         sFile='';
-        
+
         // Validate that at least TOK1 is provided
         if %trim(p_TOK1) = '';
           FailWith('At least one search token (TOK1) is required.');
@@ -174,7 +180,7 @@
             return;
           endmon;
         endif;
-        
+
         // Ensure the working library exists
         cmd = 'CHKOBJ OBJ(' + %trim(p_WRKLIB) + ') OBJTYPE(*LIB)';
         monitor;
@@ -218,6 +224,11 @@
             if Jobqnam<>'';
                 cmd=%trimr(cmd)+' '+%trimr(CMDJOBQ(1));
             endif;
+            p_TOK1=%scanrpl(cQuote:cDoubleQuote:p_TOK1);
+            p_TOK2=%scanrpl(cQuote:cDoubleQuote:p_TOK2);
+            p_TOK3=%scanrpl(cQuote:cDoubleQuote:p_TOK3);
+            p_TOK4=%scanrpl(cQuote:cDoubleQuote:p_TOK4);
+            p_TOK5=%scanrpl(cQuote:cDoubleQuote:p_TOK5);
             cmd=%scanrpl('&FILE':%trimr(sfile):cmd);
             cmd=%scanrpl('&TOK1':%trimr(p_TOK1):cmd);
             cmd=%scanrpl('&TOK2':%trimr(p_TOK2):cmd);
