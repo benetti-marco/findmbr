@@ -221,11 +221,7 @@
             if Jobqnam<>'';
                 cmd=%trimr(cmd)+' '+%trimr(CMDJOBQ(1));
             endif;
-            p_TOK1=%scanrpl(cQuote:cDoubleQuote:p_TOK1);
-            p_TOK2=%scanrpl(cQuote:cDoubleQuote:p_TOK2);
-            p_TOK3=%scanrpl(cQuote:cDoubleQuote:p_TOK3);
-            p_TOK4=%scanrpl(cQuote:cDoubleQuote:p_TOK4);
-            p_TOK5=%scanrpl(cQuote:cDoubleQuote:p_TOK5);
+
             cmd=%scanrpl('&FILE':%trimr(sfile):cmd);
             cmd=%scanrpl('&TOK1':%trimr(p_TOK1):cmd);
             cmd=%scanrpl('&TOK2':%trimr(p_TOK2):cmd);
