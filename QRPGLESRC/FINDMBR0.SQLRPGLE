@@ -389,6 +389,7 @@
         sconditions=%trim(sconditions)+' Params: MODE('+%trim(p_MODE)+')';
         sconditions=%trim(sconditions)+' CASE('+%trim(p_CASE)+')';
         sconditions=%trim(sconditions)+' REGEXP('+%trim(p_REGEX)+')';
+        sconditions=%trim(sconditions)+' - Execution date: '+%CHAR(YTIMESTAMP);
         // Expression and comment filtering
         if vCase='I';
           expr ='UPPER(SRCDTA)';
