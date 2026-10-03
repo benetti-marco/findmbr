@@ -61,6 +61,22 @@
               pLines   varchar(100)   dim(500);
         end-pr;
 
+        dcl-pr SendEscMsg extpgm('QMHSNDPM');
+          msgId    char(7)   const;
+          msgFile  char(20)  const;
+          msgData  char(256) const;
+          msgLen   int(10)   const;
+          msgType  char(10)  const;
+          callStk  char(10)  const;
+          callStkCnt int(10) const;
+          msgKey   char(4);
+          errCode  char(8);
+        end-pr;
+
+        dcl-pr FailWith;
+            txt varchar(256) const;
+        end-pr;
+
         dcl-pr CreatePath;
               pPath    varchar(1024)   const;
         end-pr;
@@ -99,8 +115,10 @@
 
         dcl-s useRegex ind   inz(*off);
         dcl-s logSQL ind   inz(*off);
+        dcl-s hadError ind inz(*off);
         dcl-s iS2   ind   inz(*off);
         dcl-s iS3   ind   inz(*off);
+        dcl-s iS4   ind   inz(*off);
         dcl-s iFile ind   inz(*off);
         dcl-s vCase    char(1) inz('I');
         dcl-s rxFlag   char(1) inz('i');
@@ -133,12 +151,12 @@
         dcl-s exitpgm   char(10)       inz('');
         dcl-s srcpfesc  char(10) dim(100);
         dcl-s srcpflst  varchar(1500) inz('');
-        dcl-s mbrdescqt   varchar(100)       inz('');
+        dcl-s mbrdescv  varchar(50)    inz('');
         dcl-s srctype   char(10)       inz('');
         // dcl-s cmd       char(1024)  inz('');
         dcl-s cmd       varchar(1024)  inz('');
         dcl-s sqlcmd    varchar(10000)  inz('');
-        dcl-s sqlins    varchar(2000)  inz('');
+        dcl-s sqlins    varchar(8000)  inz('');
         dcl-s swhere    varchar(1000)  inz('');
         dcl-s sfile     varchar(10)  inz('');
         dcl-s slib     varchar(10)  inz('');
@@ -199,7 +217,7 @@
         if %trim(p_TOK1) = '';
           STR132='Error: At least one search token (TOK1) is required.';
           EXSR PRTROW;
-          *inlr = *on;
+          FailWith('At least one search token (TOK1) is required.');
           return;
         endif;
 
@@ -311,6 +329,7 @@
         // Load FILE/LIB pairs (supports *SRCPF)
         iS2=*off;
         iS3=*off;
+        iS4=*off;
         sconditions='Libraries/Files:';
         for f = 1 to p_file.p_filecount;
           iFile=*off;
@@ -333,7 +352,7 @@
                   swhere=%trim(SWHR1(3));
                 endif;
               else;
-                sfile=%scanrpl('*':'%':%upper(FileEntry.File));
+                sfile=%trim(%scanrpl('*':'%':%upper(FileEntry.File)));
                 if %scan('%':sfile)=0;
                   swhere=%trim(SWHR1(1));
                 else;
@@ -345,7 +364,6 @@
                 iFile=*on;
               endif;
               sqlcmd=%scanrpl('&where':swhere:sqlcmd);
-              sqlcmd=%scanrpl('&file':FileEntry.File:sqlcmd);
               sqlcmd=%scanrpl('&listfile':srcpflst:sqlcmd);
               sqlcmd=%scanrpl('&wrklib':v_WRKLIB:sqlcmd);
 
@@ -358,13 +376,20 @@
                   iS2=*on;
                 endif;
                 exec sql execute s2 using :sLib;
-              else;
+              elseif %scan('%':sfile)=0;
                 if iS3=*off;
                   exec sql prepare s3 from :sqlcmd;
                   exsr PRTERR;
                   iS3=*on;
                 endif;
                 exec sql execute s3 using :sLib , :sfile;
+              else;
+                if iS4=*off;
+                  exec sql prepare s4 from :sqlcmd;
+                  exsr PRTERR;
+                  iS4=*on;
+                endif;
+                exec sql execute s4 using :sLib , :sfile;
               endif;
               exsr PRTERR;
           endif;
@@ -481,13 +506,13 @@
             exsr PRTERR;
           endif;
 
-          mbrdescqt=%scanrpl(cQuote : cDoubleQuote : %trimr(mbrdesc));
+          mbrdescv=%trimr(mbrdesc);
 
           if r=1;
             exsr PRTLOG;
           endif;
           // exec results insert
-          exec sql execute sIns using :lib, :srcfile, :mbr, :mbrdescqt, :srctype;
+          exec sql execute sIns using :lib, :srcfile, :mbr, :mbrdescv, :srctype;
           exsr PRTERR;
           if logSQL=*on;
             exec sql GET DIAGNOSTICS :rcount = ROW_COUNT;
@@ -584,6 +609,11 @@
           EXSR PRTROW;
         endif;
 
+        if hadError;
+          FailWith('FINDMBR ended with errors, see spool file QSYSPRT');
+          return;
+        endif;
+
         *inlr = *on;
         return;
         // ---------------------------------------------------------------
@@ -593,6 +623,7 @@
 
           if sqlcod<0;
 
+            hadError=*on;
             EXSR PRTSQL;
 
             exec sql
@@ -622,6 +653,7 @@
         // ---------------------------------------------------------------
         BEGSR PRTCMDERR;
 
+            hadError=*on;
             STR132='Error '+ErrMsg;
             EXSR PRTROW;
             WordWrap( cmd : 100 : lines );
@@ -730,6 +762,7 @@
 
           dcl-c cQuote       '''';
           dcl-c cDoubleQuote '''''';
+          dcl-c cEsc         '\';
 
           // Load tokens into the array
           a(1) = t1;
@@ -760,7 +793,11 @@
                 else;
                   v = lit;
                 endif;
-                pred = expr + ' LIKE ''%' + v + '%''';
+                // Escape LIKE wildcards so '_' and '%' match literally
+                v = %scanrpl(cEsc : cEsc + cEsc : v);
+                v = %scanrpl('%' : cEsc + '%' : v);
+                v = %scanrpl('_' : cEsc + '_' : v);
+                pred = expr + ' LIKE ''%' + v + '%'' ESCAPE ''' + cEsc + '''';
               endif;
 
               // Alias for this token in the CHK CTE: HAS1, HAS2, ...
@@ -875,6 +912,23 @@
 
         end-proc;
         //---------------------------------------------------------------------
+        //  FailWith( text ): close the spool and end with CPF9898 *ESCAPE
+        //---------------------------------------------------------------------
+        dcl-proc FailWith;
+          dcl-pi *n;
+            txt varchar(256) const;
+          end-pi;
+          dcl-s msgKey char(4);
+          dcl-s errCode char(8) inz(*loval);
+
+          if %open(QSYSPRT);
+            close QSYSPRT;
+          endif;
+          *inlr = *on;
+          SendEscMsg('CPF9898':'QCPFMSG   *LIBL':txt:%len(txt):
+                    '*ESCAPE':'*PGMBDY':1:msgKey:errCode);
+        end-proc;
+        //---------------------------------------------------------------------
         //  CreatePath( path )
         //---------------------------------------------------------------------
         dcl-proc CreatePath;
@@ -959,6 +1013,6 @@ values('Library', 'Src File', 'Member', 'Description', 'Src Type', 'Seq.Nr', 'Ro
 INSERT INTO &wrklib/RESULTS (LIB,SRCFILE,MBR,MBRDESC,SRCTYPE,SRCSEQ,SRCDTA)
 values('', '', '', 'Conditions', '', '000000', '&conditions')
 **CTDATA SWHR1
-and a.system_table_name = '&file'
-and a.system_table_name like '&file'
+and a.system_table_name = ?
+and a.system_table_name like ?
 and a.system_table_name NOT IN (&listfile)

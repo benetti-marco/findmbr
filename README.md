@@ -70,7 +70,8 @@ FINDMBR is an IBM i command that searches source members across one or more sour
 
 - CSV (detail): Written to CSVFOLDER/CSVFILE with all matching lines (UTF-8 with BOM, ";" delimiter, CRLF).
 - CSV (summary): Written to CSVFOLDER/CSVFILE_summary.csv with list of members containing results (UTF-8 with BOM, ";" delimiter, CRLF).
-- Spool: Optional SQL/log output when LOG(*YES).
+- Spool: Optional SQL/log output when LOG(*YES). SQL and command errors are always printed to QSYSPRT.
+- Errors: validation failures and runtime errors end the command with escape message CPF9898, so CL programs can monitor them with `MONMSG CPF9898`. With BCHJOB(\*YES) runtime errors end the batch job abnormally.
 
 ## Testing
 
