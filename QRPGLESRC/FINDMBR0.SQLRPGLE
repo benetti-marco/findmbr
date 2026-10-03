@@ -172,8 +172,8 @@
         dcl-s YTIMESTAMP timestamp  INZ(*SYS);
         dcl-s start_time timestamp;
         dcl-s time_taken int(20);
-      /copy QRPGLESRC,IFSIO2_H
-      /include QRPGLESRC,ERRNO2_H
+      /copy QRPGLESRC,IFSIO_H
+      /include QRPGLESRC,ERRNO_H
         dcl-s CMDARR    Char(100)  DIM(02) CTDATA PERRCD(1);
         dcl-s CMDARR2   Char(100)  DIM(02) CTDATA PERRCD(1);
         dcl-s SSQL1     Char(100)  DIM(15) CTDATA PERRCD(1);
@@ -919,7 +919,7 @@
             ENDIF;
         end-proc;
       /DEFINE ERRNO_LOAD_PROCEDURE
-      /include QRPGLESRC,ERRNO2_H
+      /include QRPGLESRC,ERRNO_H
         // =======================================================================
 **CTDATA CMDARR
 CPYTOIMPF FROMFILE(&wrklib/RESULTS) TOSTMF('&path') MBROPT(*REPLACE)
