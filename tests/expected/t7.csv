@@ -1,0 +1,3 @@
+"Library";"Src File";"Member";"Description";"Src Type";"Seq.Nr";"Row"
+"";"";"";"Conditions";"";"000000";"Libraries/Files: UT_FINDMBR/QTESTSRC, Tokens: CUST_ID , Params: MODE(*ANDMBR) CASE(*INSENSITIVE) REGEXP(*NO)"
+"UT_FINDMBR";"QTESTSRC";"MBR7";"Customer's member";"RPGLE";"000100";"00100 CUST_ID field                                                                                 "

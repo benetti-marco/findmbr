@@ -8,10 +8,10 @@ This project includes a minimal end-to-end test setup for FINDMBR that:
 
 ## Repository layout
 
-- `QUTISRC/TEST_SETUP.clle` : creates `UT_FINDMBR/QTESTSRC` and loads fixture members
-- `QUTISRC/TEST_RUN.clle` : executes 4 E2E tests
+- `QUTISRC/TEST_SETUP.clle` : creates `UT_FINDMBR/QTESTSRC` and `UT_FINDMBR/QTESTSRC2` and loads fixture members
+- `QUTISRC/TEST_RUN.clle` : executes 8 E2E tests
 - `QUTISRC/CMPCSV.rpgle` : executes sh script to compare CSVs
-- `tests/bin/compare_csv.sh` : `diff` compare script (returns `0`/`1`)
+- `tests/bin/compare_csv.sh` : `diff` compare script (returns `0`/`1`); ignores CR, the UTF-8 BOM and the execution date in the Conditions row
 - `tests/expected/*.csv` : expected outputs
 - `tests/fixtures/*.txt` : fixture member source lines
 
@@ -23,6 +23,9 @@ This project includes a minimal end-to-end test setup for FINDMBR that:
     - ~/findmbr-tests/expected/t2.csv  
     - ~/findmbr-tests/expected/t3.csv  
     - ~/findmbr-tests/expected/t4.csv  
+    - ~/findmbr-tests/expected/t5.csv  
+    - ~/findmbr-tests/expected/t6.csv  
+    - ~/findmbr-tests/expected/t7.csv  
 
 2) Copy fixture files to IFS:
 
@@ -31,6 +34,8 @@ This project includes a minimal end-to-end test setup for FINDMBR that:
     - ~/findmbr-tests/setup/mbr3.txt  
     - ~/findmbr-tests/setup/mbr4.txt  
     - ~/findmbr-tests/setup/mbr5.txt  
+    - ~/findmbr-tests/setup/mbr6.txt  
+    - ~/findmbr-tests/setup/mbr7.txt  
 
 3) Copy compare script compare_csv.sh to IFS and make it executable:
 

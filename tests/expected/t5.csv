@@ -1,0 +1,7 @@
+"Library";"Src File";"Member";"Description";"Src Type";"Seq.Nr";"Row"
+"";"";"";"Conditions";"";"000000";"Libraries/Files: UT_FINDMBR/QTESTSRC, UT_FINDMBR/QTESTSRC2, Tokens: FOO , Params: MODE(*ANDMBR) CASE(*INSENSITIVE) REGEXP(*NO)"
+"UT_FINDMBR";"QTESTSRC";"MBR1";"Member 1";"RPGLE";"000100";"00100 FOO is here                                                                                   "
+"UT_FINDMBR";"QTESTSRC";"MBR2";"Member 2";"RPGLE";"000100";"00100 FOO only                                                                                      "
+"UT_FINDMBR";"QTESTSRC";"MBR5";"Member 5";"RPGLE";"000100";"00100 FOO12 matched                                                                                 "
+"UT_FINDMBR";"QTESTSRC";"MBR5";"Member 5";"RPGLE";"000200";"00200 FOO9 not two digits                                                                           "
+"UT_FINDMBR";"QTESTSRC2";"MBR6";"Member 6";"RPGLE";"000100";"00100 FOO in second file                                                                            "
