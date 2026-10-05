@@ -9,7 +9,7 @@ This project includes a minimal end-to-end test setup for FINDMBR that:
 ## Repository layout
 
 - `QUTISRC/TEST_SETUP.clle` : creates `UT_FINDMBR/QTESTSRC` and `UT_FINDMBR/QTESTSRC2` and loads fixture members
-- `QUTISRC/TEST_RUN.clle` : executes 8 E2E tests
+- `QUTISRC/TEST_RUN.clle` : executes 9 E2E tests
 - `QUTISRC/CMPCSV.rpgle` : executes sh script to compare CSVs
 - `tests/bin/compare_csv.sh` : `diff` compare script (returns `0`/`1`); ignores CR, the UTF-8 BOM and the execution date in the Conditions row
 - `tests/expected/*.csv` : expected outputs
