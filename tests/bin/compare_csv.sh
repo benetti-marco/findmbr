@@ -44,7 +44,9 @@ fi
 # Ignore CR, the UTF-8 BOM and the execution timestamp in the Conditions row
 bom=$(printf '\357\273\277')
 normalize() {
-  sed -e 's/\r$//' -e "1s/^$bom//" -e '/"Conditions"/s/ - Execution date: [0-9.-]*//' "$1"
+  # tr instead of sed 's/\r$//': the PASE sed does not know the \r escape
+  tr -d '\015' < "$1" |
+    sed -e "1s/^$bom//" -e '/"Conditions"/s/ - Execution date: [0-9.-]*//'
 }
 
 diff <(normalize "$left") <(normalize "$right") >/dev/null 2>&1

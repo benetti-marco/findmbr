@@ -165,7 +165,8 @@ MONMSG MSGID(CPF9898) EXEC(DO)
   IF COND(%SCAN('ended with errors' &ERRDTA) > 0) THEN(CHGVAR VAR(&IERR) VALUE('0'))
 ENDDO
 IF   COND(&IERR='1') THEN(DO)
-  SNDPGMMSG MSGID(CPF9898) MSGF(QCPFMSG) MSGDTA('Test 9 failed (no CPF9898 from FINDMBR0 runtime error)') +
+  SNDPGMMSG MSGID(CPF9898) MSGF(QCPFMSG) +
+            MSGDTA('Test 9 failed (no CPF9898 from FINDMBR0 runtime error)') +
             MSGTYPE(*ESCAPE)
 ENDDO
 
