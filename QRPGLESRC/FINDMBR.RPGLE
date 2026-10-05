@@ -244,9 +244,14 @@
             QCMDEXC(cmd:%len(%trimr(cmd)));
         else;
             // Interactive mode: run in the current job
-            FINDMBR0(p_FILE:p_TOK1:p_TOK2:p_TOK3:p_TOK4:p_TOK5:
-              p_MODE:p_CASE:p_REGEX:p_EXITPGM:p_CSVFOLDER:p_CSVFILE:
-              p_APPEND:p_WRKLIB:p_LOG);
+            monitor;
+              FINDMBR0(p_FILE:p_TOK1:p_TOK2:p_TOK3:p_TOK4:p_TOK5:
+                p_MODE:p_CASE:p_REGEX:p_EXITPGM:p_CSVFOLDER:p_CSVFILE:
+                p_APPEND:p_WRKLIB:p_LOG);
+            on-error;
+              FailWith('FINDMBR ended with errors, see spool file QSYSPRT');
+              return;
+            endmon;
         endif;
 
         *inlr = *on;
@@ -256,8 +261,9 @@
           dcl-pi *n;
             txt varchar(256) const;
           end-pi;
+          // Escape to the caller of the program so CL can MONMSG it
           SendEscMsg('CPF9898':'QCPFMSG   *LIBL':txt:%len(txt):
-                    '*INFO':'*EXT':0:msgKey:errCode);
+                    '*ESCAPE':'*PGMBDY':1:msgKey:errCode);
         end-proc;
         // =======================================================================
 **CTDATA CMDARR
