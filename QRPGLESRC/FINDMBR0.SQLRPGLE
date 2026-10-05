@@ -190,8 +190,8 @@
         dcl-s YTIMESTAMP timestamp  INZ(*SYS);
         dcl-s start_time timestamp;
         dcl-s time_taken int(20);
-      /copy QRPGLESRC,IFSIO_H
-      /include QRPGLESRC,ERRNO_H
+      /copy QRPGLEINC,IFSIO_H
+      /include QRPGLEINC,ERRNO_H
         dcl-s CMDARR    Char(100)  DIM(02) CTDATA PERRCD(1);
         dcl-s CMDARR2   Char(100)  DIM(02) CTDATA PERRCD(1);
         dcl-s SSQL1     Char(100)  DIM(15) CTDATA PERRCD(1);
@@ -973,7 +973,7 @@
             ENDIF;
         end-proc;
       /DEFINE ERRNO_LOAD_PROCEDURE
-      /include QRPGLESRC,ERRNO_H
+      /include QRPGLEINC,ERRNO_H
         // =======================================================================
 **CTDATA CMDARR
 CPYTOIMPF FROMFILE(&wrklib/RESULTS) TOSTMF('&path') MBROPT(*REPLACE)
@@ -1003,8 +1003,8 @@ cast(? as char(10)) as SRCTYPE FROM SYSIBM.SYSDUMMY1),
 BASE as (select SRCSEQ, SRCDTA, &casewhen from FINDMBR
 where &predAny),
 CHK as (select &having from BASE)
-select PARAMS.LIB, PARAMS.file, PARAMS.MBR, PARAMS.MBRDESC, PARAMS.SRCTYPE,
-digits(SRCSEQ), SRCDTA from BASE, CHK, PARAMS
+select rtrim(PARAMS.LIB), rtrim(PARAMS.file), rtrim(PARAMS.MBR), PARAMS.MBRDESC,
+rtrim(PARAMS.SRCTYPE), digits(SRCSEQ), SRCDTA from BASE, CHK, PARAMS
 where (&predLine) order by SRCSEQ
 **CTDATA SSQL4
 INSERT INTO &wrklib/RESULTS (LIB,SRCFILE,MBR,MBRDESC,SRCTYPE,SRCSEQ,SRCDTA)
